@@ -4,15 +4,16 @@ you do not, you will get a conflict when you try to push!
 
 Go to the ScrabbleBot/ScrabbleBot.fsproj file and change ONLY the version number. Save the file.
 
-Go to the ScrabbleTemplate and run:
 ```
-dotnet run Project
+cd ScrabbleTemplate
+dotnet run ScrabbleTemplate/Program
+cd..
 ```
 This should generate a new, updated Scwabble file in the ScrabbleBot/Bin/Debug
 
 
-Go to the ScrabbleBot folder and run the following command:
+Then run:
 ```
-dotnet nuget push bin/Debug/Scwabble.<VERSION NUMBER>.nupkg --source https://nuget.pkg.github.com/jesper-bengtson/index.json --api-key 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
+dotnet nuget push ScrabbleBot/bin/Debug/Scwabble.<VERSION-NUMBER>.nupkg --source https://nuget.pkg.github.com/jesper-bengtson/index.json --api-key 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
 ```
 You should have now pushed succesfully.
