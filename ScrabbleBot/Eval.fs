@@ -1,12 +1,31 @@
-﻿// Insert your updated Eval.fs file here from Assignment 7. All modules must be internal.
-
-module internal Eval
+﻿module internal Eval
 
     open StateMonad
 
-    let add a b = failwith "Not implemented"      
-    let div a b = failwith "Not implemented"      
+    (* Code for testing *)
 
+    let hello = [('H', 4); ('E', 1); ('L', 1); ('L', 1); ('O', 1)];;
+    let state = mkState [("x", 5); ("y", 42)] hello ["_pos_"; "_result_"]
+    let emptyState = mkState [] [] []
+    
+    let add a b = a >>= (fun v1 -> b >>= (fun v2 -> ret (v1 + v2)))    
+    let sub a b = a >>= (fun v1 -> b >>= (fun v2 -> ret (v1 - v2)))    
+    let mul a b = a >>= (fun v1 -> b >>= (fun v2 -> ret (v1 * v2))) 
+    let div a b = 
+        a >>= (fun v1 -> b >>= (fun v2 -> 
+                if v2 <> 0
+                then ret (v1 / v2)
+                else fail (DivisionByZero) 
+            )
+        )
+    let _mod a b = 
+        a >>= (fun v1 -> b >>= (fun v2 -> 
+                if v2 <> 0
+                then ret (v1 % v2)
+                else fail (DivisionByZero) 
+            )
+        )
+        
     type aExp =
         | N of int
         | V of string
@@ -58,12 +77,43 @@ module internal Eval
     let (.>=.) a b = ~~(a .<. b)                (* numeric greater than or equal to *)
     let (.>.) a b = ~~(a .=. b) .&&. (a .>=. b) (* numeric greater than *)    
 
-    let arithEval a : SM<int> = failwith "Not implemented"      
+    let rec arithEval a : SM<int> = 
+        match a with
+        | N (b) -> ret b
+        | V (b) -> lookup b
+        | WL -> wordLength
+        | PV (b) -> arithEval b >>= (fun v -> pointValue v)
+        | Add (x,y) -> add (arithEval x) (arithEval y)
+        | Sub (x,y) -> sub (arithEval x) (arithEval y)
+        | Mul (x,y) -> mul (arithEval x) (arithEval y)
+        | Div (x,y) -> div (arithEval x) (arithEval y)
+        | Mod (x,y) -> _mod (arithEval x) (arithEval y)
+        | CharToInt (b) -> charEval b >>= (fun v -> ret (System.Convert.ToInt32 v))
+    and charEval c : SM<char> = 
+        match c with
+        | C (d) -> ret d 
+        | CV (d) -> (arithEval d) >>= (fun v -> (characterValue v))
+        | ToUpper (d) -> match d with 
+                         | C (e) -> ret (System.Char.ToUpper e)
+                         | _ -> charEval d >>= (fun v -> ret (System.Char.ToUpper v))
+        | ToLower (d) -> match d with 
+                         | C (e) -> ret (System.Char.ToLower e)
+                         | _ -> charEval d >>= (fun v -> ret (System.Char.ToLower v))
+        | IntToChar (d) -> (arithEval d) >>= (fun v -> ret ((System.Char.ConvertFromUtf32 v).[0])) 
 
-    let charEval c : SM<char> = failwith "Not implemented"      
-
-    let boolEval b : SM<bool> = failwith "Not implemented"
-
+    let rec boolEval b : SM<bool> = 
+       match b with
+       | TT -> ret true
+       | FF -> ret false
+       | AEq (c,d) -> arithEval c >>= (fun v -> arithEval d >>= (fun w -> ret (v = w)))
+       | ALt (c,d) -> arithEval c >>= (fun v -> arithEval d >>= (fun w -> ret (v < w)))
+       | Not c -> (boolEval c) >>= (fun v -> ret (not v))
+       | Conj (c,d) -> boolEval c >>= (fun v1 -> boolEval d >>= (fun v2 -> ret (v1 && v2))) 
+       | IsVowel c -> (charEval c) >>= (fun v -> ret (match System.Char.ToLower v with
+                                                        | 'a' | 'e' | 'i' | 'o' |'u' |'y' -> true
+                                                        | _ -> false))
+       | IsLetter c -> (charEval c) >>= (fun v -> ret (System.Char.IsLetter v))
+       | IsDigit c -> (charEval c) >>= (fun v -> ret (System.Char.IsDigit v))
 
     type stm =                (* statements *)
     | Declare of string       (* variable declaration *)
@@ -93,7 +143,7 @@ module internal Eval
 
     let stmntEval2 stm = failwith "Not implemented"
 
-(* Part 4 *) 
+(* Part 4 (Optional) *) 
 
     type word = (char * int) list
     type squareFun = word -> int -> int -> Result<int, Error>
@@ -114,3 +164,4 @@ module internal Eval
     }
 
     let mkBoard c defaultSq boardStmnt ids = failwith "Not implemented"
+    
