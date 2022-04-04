@@ -17,3 +17,10 @@ Then run:
 dotnet nuget push ScrabbleBot/bin/Debug/Scwabble.<VERSION-NUMBER>.nupkg --source https://nuget.pkg.github.com/jesper-bengtson/index.json --api-key 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
 ```
 You should have now pushed succesfully.
+
+
+# Other stuff
+```
+dotnet nuget add source https://nuget.pkg.github.com/jesper-bengtson/index.json -n FP2022 -u jesper-bengtson -p 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 --store-password-in-clear-text
+dotnet nuget remove source FP2022
+```
