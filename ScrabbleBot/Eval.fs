@@ -111,8 +111,6 @@
        | IsVowel c -> (charEval c) >>= (fun v -> ret (match System.Char.ToLower v with
                                                         | 'a' | 'e' | 'i' | 'o' |'u' |'y' -> true
                                                         | _ -> false))
-       | IsLetter c -> (charEval c) >>= (fun v -> ret (System.Char.IsLetter v))
-       | IsDigit c -> (charEval c) >>= (fun v -> ret (System.Char.IsDigit v))
 
     type stm =                (* statements *)
     | Declare of string       (* variable declaration *)

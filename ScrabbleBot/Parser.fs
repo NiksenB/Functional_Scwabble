@@ -117,13 +117,10 @@ module internal Parser
 
     let TParse = pTrue |>> (fun _ -> TT) <?> "True"
     let FParse = pFalse |>> (fun _ -> FF) <?> "False"
-    let IsLetterParse = unop pIsLetter (parenthesise CParse) |>> IsLetter <?> "IsLetter"
-    let IsVowelParse = unop pIsVowel (parenthesise CParse) |>> IsVowel <?> "IsVowel"
-    let IsDigitParse = unop pIsDigit (parenthesise CParse) |>> IsDigit <?> "IsDigit"
     let NotParse = pchar '~' >*>. JunctionBoolParse |>> Not <?> "Not"
     let ParBoolParse = parenthesise JunctionBoolParse <?> "ParBool"
 
-    do vref := choice [TParse; FParse; IsLetterParse; IsLetterParse; IsVowelParse; IsDigitParse; NotParse; ParBoolParse]
+    do vref := choice [TParse; FParse; NotParse; ParBoolParse]
 
     let BexpParse = JunctionBoolParse
 
