@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RepositoryUrl>https://github.com/jesper-bengtson/Scrabble-FP2022/</RepositoryUrl>
+    <RepositoryUrl>https://github.com/jesper-bengtson/Scrabble-FP2021/</RepositoryUrl>
     <TargetFramework>net6.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Company>IT University of Copenhagen</Company>
@@ -34,7 +34,7 @@ Group name: Scwabble</Description>
 
   <ItemGroup>
     <PackageReference Include="FParsec" Version="1.1.1" />
-    <PackageReference Include="ScrabbleUtil" Version="1.0.12" />
+    <PackageReference Include="ScrabbleUtil" Version="1.0.11" />
     <PackageReference Update="FSharp.Core" Version="6.0.3" />
   </ItemGroup>
 
