@@ -143,6 +143,8 @@ module internal Parser
 
 
     (* The rest of your parser goes here *)
+    
+    //Read from Assignment 6 pdf from page 15 to find information??
 
     type word   = (char * int) list
     type squareFun = word -> int -> int -> Result<int, Error>
