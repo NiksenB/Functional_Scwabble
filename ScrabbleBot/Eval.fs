@@ -120,7 +120,18 @@
     | ITE of bExp * stm * stm (* if-then-else statement *)
     | While of bExp * stm     (* while statement *)
 
-    let rec stmntEval stmnt : SM<unit> = failwith "Not implemented"
+    //LOOK HERE, WE NEED THIS. MAI MAYBE HAS BETTER VERSION? MAY ALSO BE CALLED "EvalStm" or something...?
+    let rec stmntEval (stmnt : stm) : SM<unit> = 
+        match stmnt with 
+        //| Declare -> 
+        // | Ass (var, v) -> (let val = arithEval V
+        //                     )
+        | Skip -> ret ()
+        // | Seq
+        // | ITE 
+        // | While 
+
+
 
 (* Part 3 (Optional) *)
 
@@ -140,25 +151,30 @@
 
     let stmntEval2 stm = failwith "Not implemented"
 
-(* Part 4 (Optional) *) 
+(* Part 4 (Optional) *)
 
     type word = (char * int) list
     type squareFun = word -> int -> int -> Result<int, Error>
 
-    let stmntToSquareFun stm = failwith "Not implemented"
+    //LOOK HERE, WE NEED THIS. IT IS FROM 6.12 BUT BASED ON WORK WE DID IN 3.7
+    let stmntToSquareFun (stm : stm) : squareFun = fun mkState
 
 
-    type coord = int * int
+    //SHOULD THE TYPE DEFINITIONS AND FUNCTIONS BELOW BE HERE IN EVAL, OR IN PARSER.fs? SOME OF THE LINES ARE CURRENTLY IN BOTH PLACES
 
-    type boardFun = coord -> Result<squareFun option, Error> 
 
-    let stmntToBoardFun stm m = failwith "Not implemented" //stmnt -> Map<int, squareFun> -> boardFun
 
-    type board = {
-        center        : coord
-        defaultSquare : squareFun
-        squares       : boardFun
-    }
+    // type coord = int * int
 
-    let mkBoard c defaultSq boardStmnt ids = failwith "Not implemented"
+    // type boardFun = coord -> Result<squareFun option, Error> 
+
+    // let stmntToBoardFun stm m = failwith "Not implemented" //stmnt -> Map<int, squareFun> -> boardFun
+
+    // type board = {
+    //     center        : coord
+    //     defaultSquare : squareFun
+    //     squares       : boardFun
+    // }
+
+    // let mkBoard c defaultSq boardStmnt ids = failwith "Not implemented"
     

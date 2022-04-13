@@ -1,15 +1,23 @@
 # RECENT CHANGES
 
-- Added points to the state
-- Forced the printing of both hand and points.
+- 06/4 - Added points to the state
+- 06/4 - Forced the printing of both hand and points.
+- 13/4 - Inserted some stuff here and there that we may need maybe not. Search for "LOOK HERE" to see changes in the files Parser, Eval and StateMonad
 
 # WHAT NIKOLINE HAS LEARNED
 
-- There is a newer version of Scrabble Template. See Github update from Freja + Jacob, they'll be uploading soon.
-- The bot needs a boardProg function. We can use our parser from Assignment 7 for this.
-- "board" (located in Scrabble.Util) is parsed via. the functions that we wrote in assignment 7. We'll need them, also red ones.
+- 08/4 - There is some inconsistency in method names in Scrabble Template here and there. Freja + Jacob should soon be uploading a version on Github that shows these changes.
+- 08/4 - The bot needs a boardProg function. We can use our parser from Assignment 7 for this.
+- 08/4 - "board" (located in Scrabble.Util) is parsed via. the functions that we wrote in assignment 7. We'll need them, also red ones.
+- 13/4 - boardprog metod (red, ass. 7) needs stmntToSquareFun metod (red, 6.12), which needs stmntEval + declare (yellow, ass. 6). Since Mai has ass. 6 yellow, what we need to write is ass. 6 and 7 red exercises.
 
 # TODO
+
+- Mai must insert yellow ass 6 functions in Eval.fs
+- We need to write red ass 6 (i don't know if we need everything, tho..)
+- We need to write red ass 7 (i don't know if we need everything, tho..)
+- We should clean up duplicate type definitions across different files.
+- Change Scrabble.fs (start with the things written just below? :) )
 
 - When tiles are placed on the board, the state needs to update the board, so that the computer
   knows where the different tiles are and can use that information to write new words.

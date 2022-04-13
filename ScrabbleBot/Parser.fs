@@ -144,7 +144,6 @@ module internal Parser
 
     (* The rest of your parser goes here *)
     
-    //Read from Assignment 6 pdf from page 15 to find information??
 
     type word   = (char * int) list
     type squareFun = word -> int -> int -> Result<int, Error>
@@ -160,3 +159,75 @@ module internal Parser
 
     // Default (unusable) board in case you are not implementing a parser for the DSL.
     let mkBoard : boardProg -> board = fun _ -> {center = (0,0); defaultSquare = Map.empty; squares = fun _ -> Success (Some Map.empty)}
+
+
+
+
+
+
+
+
+    //LOOK HERE. ALL BELOW IS PASTED FROM RED EXERCISES IN ASSIGNMENT 7, BUT I DON'T KNOW HOW MUCH OF IT WE ACTUALLY NEED........
+
+    type squareProg = Map<int, string>
+    type boardProg = {
+        prog : string;
+        squares : Map<int, squareProg>
+        usedSquare : int
+        center : coord
+        isInfinite : bool // For pretty-printing purposes only
+        ppSquare : string // For pretty-printing purposes only
+    }
+
+    let singleLetterScore =
+        Map.add 0 "_result_ := pointValue(_pos_) + _acc_" Map.empty
+    let doubleLetterScore =
+        Map.add 0 "_result_ := pointValue(_pos_) * 2 + _acc_" Map.empty
+    let tripleLetterScore =
+        Map.add 0 "_result_ := pointValue(_pos_) * 3 + _acc_" Map.empty
+    let doubleWordScore = Map.add 1 "_result_ := _acc_ * 2" singleLetterScore
+    let tripleWordScore = Map.add 1 "_result_ := _acc_ * 3" singleLetterScore
+
+    let standardBoardSource =
+        "declare xabs;
+        declare yabs;
+        if (_x_ < 0) then { xabs := _x_ * -1 } else { xabs := _x_ };
+        if (_y_ < 0) then { yabs := _y_ * -1 } else { yabs := _y_ };
+        if ((xabs = 0 /\ (yabs = 7)) \/
+            (xabs = 7 /\ (yabs = 0 \/ yabs = 7))) then { _result_ := 4 }
+        else { if (xabs = yabs /\ xabs < 7 /\ xabs > 2) then { _result_ := 3 }
+        else { if ((xabs = 2 /\ (yabs = 2 \/ yabs = 6)) \/
+                    (xabs = 6 /\ (yabs = 2))) then { _result_ := 2 }
+        else { if ((xabs = 0 /\ (yabs = 4)) \/
+                (xabs = 1 /\ (yabs = 1 \/ yabs = 5)) \/
+                (xabs = 4 /\ (yabs = 0 \/ yabs = 7)) \/
+                (xabs = 5 /\ (yabs = 1)) \/
+                (xabs = 7 /\ (yabs = 4))) then { _result_ := 1 }
+        else { if (xabs <= 7 /\ yabs <= 7) then { _result_ := 0 }
+        else { _result_ := -1 } } } } }"
+
+    let squares =
+        [(0, singleLetterScore);
+            (1, doubleLetterScore);
+            (2, tripleLetterScore);
+            (3, doubleWordScore);
+            (4, tripleWordScore)] |>
+        Map.ofList
+    
+    let standardBoardProg : boardProg = {
+        prog = standardBoardSource;
+        squares = squares;
+        usedSquare = 0;
+        center = (0, 0);
+        isInfinite = false;
+        ppSquare = "" // There will be a pretty-printing function here later
+        // but you never have to reason about it
+    }
+
+    //ASSIGNMENT DESCRIPTION:
+    //Create a function parseSquareProg : squareProg -> square that given a square program sqp runs the
+    // stmntParse parser on all source code inside the sqp map (the string values) and evaluates them using
+    // your new stmntToSquarerFun function from Assignment 6.12. The priorities should remain unchanged.
+    // Hint: Use Map.map , getSuccess from JParsec , and use run to run stmntParse to run the parser on the
+    // source code.
+    let parseSquareProg (sqp : squareProg) = failwith "Yeah, no, we don't have the methods we need to write this yet..:("

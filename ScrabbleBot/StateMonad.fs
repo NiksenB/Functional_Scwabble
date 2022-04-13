@@ -79,7 +79,18 @@
               | Some v -> Success (v, s)
               | None   -> Failure (VarNotFound x))
 
-    let declare (var : string) : SM<unit> = failwith "Not implemented"   
+    //LOOK HERE: JUST ADDED BUT MAI CAN REPLACE WITH BETTER VERSION?
+    let declare (var : string) : SM<unit> =
+        S (fun s -> 
+            if s.reserved.Contains(var)
+            then 
+                Failure (ReservedName var)
+            // elif List. Map.s.vars ....
+            // then
+            //     Failure (VarExists var)
+            else 
+                Success ((), {s with vars = (List.append s.vars [Map.add var 0 Map.empty])})
+            )
 
     let update (var : string) (value : int) : SM<unit> = 
         let rec aux n =
