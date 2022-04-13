@@ -3,6 +3,12 @@
 - Added points to the state
 - Forced the printing of both hand and points.
 
+# WHAT NIKOLINE HAS LEARNED
+
+- There is a newer version of Scrabble Template. See Github update from Freja + Jacob, they'll be uploading soon.
+- The bot needs a boardProg function. We can use our parser from Assignment 7 for this.
+- "board" (located in Scrabble.Util) is parsed via. the functions that we wrote in assignment 7. We'll need them, also red ones.
+
 # TODO
 
 - When tiles are placed on the board, the state needs to update the board, so that the computer
@@ -12,7 +18,7 @@
     necessary to look in Assignment 6 and 7.
   - It may be necessary to look into / implement DSL (e.g. trippleWordScore or something). Mentioned in  
     assignments 6 and used in 7
-- Update state so that it has information about numbers of players and
+- Update state so that it has information about numbers of players and player turn, which players have forfeited the game + all tiles on the board where words can be started.
 
 # Functional_Scwabble
 
