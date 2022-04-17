@@ -79,7 +79,7 @@
               | Some v -> Success (v, s)
               | None   -> Failure (VarNotFound x))
 
-    //LOOK HERE: JUST ADDED BUT MAI CAN REPLACE WITH BETTER VERSION?
+    //TODO LOOK HERE: JUST ADDED BUT MAI CAN REPLACE WITH BETTER VERSION? 
     let declare (var : string) : SM<unit> =
         S (fun s -> 
             if s.reserved.Contains(var)
@@ -91,7 +91,16 @@
             else 
                 Success ((), {s with vars = (List.append s.vars [Map.add var 0 Map.empty])})
             )
-
+    
+    let declareMai (var : string) : SM<unit> =
+        S (fun s ->
+            if s.reserved.Contains var then Failure(ReservedName var)
+            else if s.vars.Head.ContainsKey var then Failure(VarExists var)
+            else
+                let newM = Map.empty
+                let m = newM.Add(var, 0)
+                Success ((), {s with vars = m :: s.vars})
+            )
     let update (var : string) (value : int) : SM<unit> = 
         let rec aux n =
             function
