@@ -142,7 +142,7 @@ module internal Parser
     let stmParse = SequenceParse
 
 
-    (* The rest of your parser goes here *)
+        (* The rest of your parser goes here *)
     
 
     type word   = (char * int) list
@@ -157,27 +157,43 @@ module internal Parser
         squares       : boardFun2
     }
 
-    // Default (unusable) board in case you are not implementing a parser for the DSL.
-    let mkBoard : boardProg -> board = fun _ -> {center = (0,0); defaultSquare = Map.empty; squares = fun _ -> Success (Some Map.empty)}
+     //ASSIGNMENT DESCRIPTION:
+    //Create a function parseSquareProg : squareProg -> square that given a square program sqp runs the
+    // stmntParse parser on all source code inside the sqp map (the string values) and evaluates them using
+    // your new stmntToSquarerFun function from Assignment 6.12. The priorities should remain unchanged.
+    // Hint: Use Map.map , getSuccess from JParsec , and use run to run stmntParse to run the parser on the
+    // source code.
+    //this is the elusive "parseSquareFun" aka 7.12
+    let parseSquareProg (sqp : squareProg) : square =
+        Map.map (fun _ v -> getSuccess (run stmParse v)) sqp
+        |> Map.map (fun _ v -> stmntToSquareFun v)
+        
+   
+    //7.13     
+    let parseBoardFun (s : string) (sqs : Map<int, square>) : boardFun2 =
+        stmntToBoardFun (getSuccess (run stmParse s)) sqs
+        
+    
+    
+    //7.14
+    //det er ikke parseSquareFun der skal køres men parseSquareProg fra 7.12 ?? det virker legit
+    //parseSquareProg skal bruge stmntToSquareFun
+    let mkBoard (bp : boardProg) : board =
+        let center = bp.center
+        let m = bp.squares
+        let m' = Map.map (fun k v -> parseSquareProg v) m
+        let sq = parseBoardFun bp.prog m'
+        let x = bp.usedSquare
+        let defaultSq = m'[x]
+        {center = center; defaultSquare =  defaultSq; squares = sq}
 
 
 
-
-
-
-
+    //let mkBoard : boardProg ->  board = fun _ -> failwith "dinfar"
+    
 
     //TODO LOOK HERE. ALL BELOW IS PASTED FROM RED EXERCISES IN ASSIGNMENT 7, BUT I DON'T KNOW HOW MUCH OF IT WE ACTUALLY NEED........
 
-    type squareProg = Map<int, string>
-    type boardProg = {
-        prog : string;
-        squares : Map<int, squareProg>
-        usedSquare : int
-        center : coord
-        isInfinite : bool // For pretty-printing purposes only
-        ppSquare : string // For pretty-printing purposes only
-    }
 
     let singleLetterScore =
         Map.add 0 "_result_ := pointValue(_pos_) + _acc_" Map.empty
@@ -221,13 +237,5 @@ module internal Parser
         center = (0, 0);
         isInfinite = false;
         ppSquare = "" // There will be a pretty-printing function here later
-        // but you never have to reason about it
+        // but you never have to reason abo1ut it
     }
-
-    //ASSIGNMENT DESCRIPTION:
-    //Create a function parseSquareProg : squareProg -> square that given a square program sqp runs the
-    // stmntParse parser on all source code inside the sqp map (the string values) and evaluates them using
-    // your new stmntToSquarerFun function from Assignment 6.12. The priorities should remain unchanged.
-    // Hint: Use Map.map , getSuccess from JParsec , and use run to run stmntParse to run the parser on the
-    // source code.
-    let parseSquareProg (sqp : squareProg) = failwith "Yeah, no, we don't have the methods we need to write this yet..:("
