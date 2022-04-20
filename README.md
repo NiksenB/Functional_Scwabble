@@ -1,3 +1,7 @@
+## Todo list
+- [ ] mkBoard i 6eren
+- [ ] mkBoard i forhold 7eren
+
 # RECENT CHANGES
 
 - 06/4 - Added points to the state
@@ -13,7 +17,6 @@
 
 # TODO
 
-- Mai must insert yellow ass 6 functions in Eval.fs
 - We need to write red ass 6 (i don't know if we need everything, tho..)
 - We need to write red ass 7 (i don't know if we need everything, tho..)
 - We should clean up duplicate type definitions across different files.

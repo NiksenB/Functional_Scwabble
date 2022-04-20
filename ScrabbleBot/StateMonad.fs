@@ -101,6 +101,7 @@
                 let m = newM.Add(var, 0)
                 Success ((), {s with vars = m :: s.vars})
             )
+            
     let update (var : string) (value : int) : SM<unit> = 
         let rec aux n =
             function

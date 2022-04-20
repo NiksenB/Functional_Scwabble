@@ -250,13 +250,13 @@
     
     type boardFun = coord -> Result<squareFun option, Error>
     
-    //LOOK HERE, WE NEED THIS. IT IS FROM 6.12 BUT BASED ON WORK WE DID IN 3.7
+    // TODO LOOK HERE, WE NEED THIS. IT IS FROM 6.12 BUT BASED ON WORK WE DID IN 3.7
     
     
     //let stmntToSquareFun (stm : stm) : squareFun = fun mkState
    
     
-    let stmntToBoardFun (stm : stm) (m: Map<int, squareFun> ) : boardFun =
+    let stmntToBoardFun stm  (m: Map<int, 'a> )  =
         let sf c =
             let vars = [("_x_", fst(c)); ("_y_",snd(c)); ("_result_",0)]
             let set = [("_x_"); ("_y_"); ("_result_")]
@@ -278,22 +278,11 @@
              
         sf 
 
-    
-
-    
-
-    
-
     type board = {
         center        : coord
         defaultSquare : squareFun
         squares       : boardFun
     }
-
-
-    
-
-    // let stmntToBoardFun stm m = failwith "Not implemented" //stmnt -> Map<int, squareFun> -> boardFun
 
     // let mkBoard c defaultSq boardStmnt ids = failwith "Not implemented"
     
