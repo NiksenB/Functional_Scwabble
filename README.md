@@ -1,35 +1,19 @@
-## Todo list
-- [ ] mkBoard i 6eren
-- [ ] mkBoard i forhold 7eren
-
 # RECENT CHANGES
 
 - 06/4 - Added points to the state
 - 06/4 - Forced the printing of both hand and points.
-- 13/4 - Inserted some stuff here and there that we may need maybe not. Search for "LOOK HERE" to see changes in the files Parser, Eval and StateMonad
-
-# WHAT NIKOLINE HAS LEARNED
-
-- 08/4 - There is some inconsistency in method names in Scrabble Template here and there. Freja + Jacob should soon be uploading a version on Github that shows these changes.
-- 08/4 - The bot needs a boardProg function. We can use our parser from Assignment 7 for this.
-- 08/4 - "board" (located in Scrabble.Util) is parsed via. the functions that we wrote in assignment 7. We'll need them, also red ones.
-- 13/4 - boardprog metod (red, ass. 7) needs stmntToSquareFun metod (red, 6.12), which needs stmntEval + declare (yellow, ass. 6). Since Mai has ass. 6 yellow, what we need to write is ass. 6 and 7 red exercises.
+- 13/4 - Inserted some stuff here and there that we may need maybe not. See changes in the files Parser, Eval and StateMonad
+- 20/4 - Now the necessary helper methods from ass. 6 + 7 have been implemented
+- 20/4 - State has been updated to include playerturn, num of players, and the list of players who have forfeited. This in reflected in the RCM's in Scrabble.fs
 
 # TODO
 
-- We need to write red ass 6 (i don't know if we need everything, tho..)
-- We need to write red ass 7 (i don't know if we need everything, tho..)
+- Change Scrabble.fs so that
+  - When tiles are placed on the board, the state needs to update the board, so that the computer
+    knows where the different tiles are and can use that information to write new words. A TA suggested having a Map<coord, tile> or something like that as part of the state
+  - We "parse" the different possible Gameplay Errors (RGPE), see the full list in the Scrabble.pdf document.
+- Make the algorithm that makes moves when it's our turn.
 - We should clean up duplicate type definitions across different files.
-- Change Scrabble.fs (start with the things written just below? :) )
-
-- When tiles are placed on the board, the state needs to update the board, so that the computer
-  knows where the different tiles are and can use that information to write new words.
-  - 'mkBoard' (located in the bottom of the Parser file) may need to be implemented to achieve this?
-    But that method depends on other methods/types and it's all in all very confusing. It may be
-    necessary to look in Assignment 6 and 7.
-  - It may be necessary to look into / implement DSL (e.g. trippleWordScore or something). Mentioned in  
-    assignments 6 and used in 7
-- Update state so that it has information about numbers of players and player turn, which players have forfeited the game + all tiles on the board where words can be started.
 
 # Functional_Scwabble
 
