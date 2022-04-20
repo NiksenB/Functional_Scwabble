@@ -3,7 +3,7 @@
 - 06/4 - Added points to the state
 - 06/4 - Forced the printing of both hand and points.
 - 13/4 - Inserted some stuff here and there that we may need maybe not. See changes in the files Parser, Eval and StateMonad
-- 20/4 - Now the necessary helper methods from ass. 6 + 7 have been implemented
+- 20/4 - Now the necessary helper methods from ass. 6+7 have been implemented
 - 20/4 - State has been updated to include playerturn, num of players, and the list of players who have forfeited. This in reflected in the RCM's in Scrabble.fs
 
 # TODO
