@@ -1,6 +1,7 @@
 ﻿namespace Scwabble
 
 open ScrabbleUtil
+open ScrabbleUtil.Dictionary
 open ScrabbleUtil.ServerCommunication
 
 open System.IO
@@ -63,6 +64,9 @@ module State =
     let points st        = st.points
     let hand st          = st.hand
 
+
+
+
 module Scrabble =
     open System.Threading
 
@@ -82,7 +86,9 @@ module Scrabble =
 
     let getNextPlayerTurn (st : State.state) = 
         playerTurnHelper st.numOfPlayers (st.playerTurn + (uint32) 1) st.playerTurn st.forfeited
-
+    
+    
+    
     let playGame cstream pieces (st : State.state) =
 
         let rec aux (st : State.state) =
@@ -106,6 +112,8 @@ module Scrabble =
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
                 
+                
+                
                 //TODO: Update some Map<coord, tile> or similar (which should be part of the state???), which tells us where tiles are now placed
 
                 let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), (uint32) 1)) ms
@@ -122,10 +130,16 @@ module Scrabble =
                                         (st.points + points) 
                                         handAddNew
                 
+                forcePrint(" Det her er hand " + st.hand.ToString())
+                forcePrint(":)")
+                forcePrint("DET ER HER DANSKERE: "+ ms.ToString() + "\n\n")
                 forcePrint("Your player number: " + st'.playerNumber.ToString() + "\n\n")
                 forcePrint("Your state: " + st'.ToString() + "\n\n")
                 forcePrint("Next player: " + st'.playerTurn.ToString() + "\n\n")
                 forcePrint("Your points: " + st'.points.ToString() + "\n\n")
+                forcePrint(" ----- ----- ----- ----- -----")
+                //let words = findMove st.dict st ms pieces 
+                //forcePrint(" " + words.ToString())
                 
                 aux st'
 
@@ -214,3 +228,33 @@ module Scrabble =
 
         fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet)
         
+    
+    
+    let findMove (dict : Dict) (state : State.state) (ms : List<coord * (uint32 * (char *int))>) (pc : Map<uint32, tile>) =
+                    //find valide ord ud fra de brikker vi har
+                    let hand = state.hand
+                    let rec loopthroughhand (hand : MultiSet.MultiSet<uint32>) acc ( (word : string), (nums : uint32 list)) =
+                        if MultiSet.isEmpty hand
+                        then acc
+                        else
+                        let list = MultiSet.toList hand
+                        List.fold (fun acc x ->
+                            let char = Map.find x pc //dette er en tile og bogstav skal derfor trækkes ud herfra
+                            let validWord = step 'b' dict //erstat 'b' med char når lortet virker //TODO 
+                            let newWordNums = (word.Insert(-1, char.ToString()), nums@[x]) //wow 
+                            
+                            if validWord.IsSome
+                            then
+                               if fst validWord.Value
+                               then loopthroughhand (MultiSet.removeSingle x hand) (acc@[newWordNums]) newWordNums
+                               else loopthroughhand (MultiSet.removeSingle x hand) acc newWordNums
+                            else acc      
+                            ) [] list
+            
+
+        
+                    loopthroughhand hand [] ("", [])   
+            
+
+    
+    
