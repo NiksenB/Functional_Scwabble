@@ -72,32 +72,57 @@ module Scrabble =
     open System.Threading
     
     //TODO below takes a million years, we should rewrite to account for coordmap because this doesnt work
-    let findMove (dict : Dict) (state : State.state) (ms : List<coord * (uint32 * (char *int))>) (pc : Map<uint32, tile>) =
-                    //find valide ord ud fra de brikker vi har
-                    let hand = state.hand
-                    let rec loopthroughhand (hand : MultiSet.MultiSet<uint32>) acc ( (word : string), (nums : uint32 list)) =
-                        if MultiSet.isEmpty hand
-                        then acc
-                        else
-                        let list = MultiSet.toList hand
-                        List.fold (fun acc x ->
-                            let beh = Map.find x pc //dette er en tile og bogstav skal derfor trækkes ud herfra
-                            let char = fst ((Set.toList beh)[0])
-                            let validWord = step char dict //erstat 'b' med char når lortet virker //TODO 
-                            let newWordNums = (word.Insert(-1, char.ToString()), nums@[x]) //wow 
+    // let findMove (dict : Dict) (state : State.state) (ms : List<coord * (uint32 * (char *int))>) (pc : Map<uint32, tile>) =
+    //                 //find valide ord ud fra de brikker vi har
+    //                 let hand = state.hand
+    //                 let rec loopthroughhand (hand : MultiSet.MultiSet<uint32>) acc ( (word : string), (nums : uint32 list)) =
+    //                     if MultiSet.isEmpty hand
+    //                     then acc
+    //                     else
+    //                     let list = MultiSet.toList hand
+    //                     List.fold (fun acc x ->
+    //                         let beh = Map.find x pc //dette er en tile og bogstav skal derfor trækkes ud herfra
+    //                         let char = fst ((Set.toList beh)[0])
+    //                         let validWord = step char dict //erstat 'b' med char når lortet virker //TODO 
+    //                         let newWordNums = (word.Insert(-1, char.ToString()), nums@[x]) //wow 
                             
-                            if validWord.IsSome
-                            then
-                               if fst validWord.Value
-                               then loopthroughhand (MultiSet.removeSingle x hand) (acc@[newWordNums]) newWordNums
-                               else loopthroughhand (MultiSet.removeSingle x hand) acc newWordNums
-                            else
-                                acc      
-                            ) [] list
+    //                         if validWord.IsSome
+    //                         then
+    //                            if fst validWord.Value
+    //                            then loopthroughhand (MultiSet.removeSingle x hand) (acc@[newWordNums]) newWordNums
+    //                            else loopthroughhand (MultiSet.removeSingle x hand) acc newWordNums
+    //                         else
+    //                             acc      
+    //                         ) [] list
             
 
         
-                    loopthroughhand hand [] ("", [])  
+    //                 loopthroughhand hand [] ("", [])  
+
+
+    // let rec tryBuild dict coordmap hand pieces start = 
+
+
+    // let rec goFind dict coordMap hand pieces coordCounter =
+        
+    //     if coordCounter = -1
+    //         then
+    //             if (tryBuild dict coordmap hand pieces (0,0)).isEmpty
+    //             then
+    //                 if coordMap.isEmpty then failwith "u gotta pass bro"
+    //     else 
+    //         if (tryBuild dict coordmap hand pieces (Map.keys (coordMap)).[coordCounter] |> fst) |> Map.isEmpty
+    //         then goFind dict coordMap hand pieces (coordCounter+1)
+
+    // let findMove (dict : Dict) (state : State.state) (pieces : Map<uint32, tile>) =
+    //     goFind dict state.coordMap state.hand pieces -1 
+
+
+    let downOrRightNeighbor ((x,y) : coord) coordMap = 
+        Map.containsKey (x,y+1) coordMap || Map.containsKey (x+1,y) coordMap
+
+    let findDownRightAnchors (coordMap : Map<coord, (uint32 * (char * int))>)= 
+        Map.fold (fun anchorList (x, coordMap)-> if (downOrRightNeighbor x coordMap) then x::anchorList else anchorList ) List.empty coordMap
 
     let setListToHand h = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty h
 
