@@ -51,9 +51,10 @@ module State =
         forfeited     : Set<uint32>
         points        : int
         hand          : MultiSet.MultiSet<uint32>
+        coordMap      : Map<coord, (uint32 * (char * int))>
     }
 
-    let mkState b d np pn pt f p h = {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h }
+    let mkState b d np pn pt f p h cm= {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; }
 
     let board st         = st.board
     let dict st          = st.dict
@@ -119,6 +120,7 @@ module Scrabble =
                 let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), (uint32) 1)) ms
                 let handRemoveOld = MultiSet.subtract st.hand (setListToHand playedTiles)
                 let handAddNew = MultiSet.sum handRemoveOld (setListToHand newPieces)
+                let udpateMap = List.fold (fun coord brik -> Map.add coord brik st.coordMap)  ms st.coordMap
 
                 let st' =   State.mkState 
                                         st.board
@@ -129,6 +131,7 @@ module Scrabble =
                                         st.forfeited 
                                         (st.points + points) 
                                         handAddNew
+                                        st.coordMap
                 
                 forcePrint(" Det her er hand " + st.hand.ToString())
                 forcePrint(":)")
@@ -226,7 +229,7 @@ module Scrabble =
                   
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
 
-        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet)
+        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty)
         
     
     
