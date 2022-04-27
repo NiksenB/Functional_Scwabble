@@ -112,15 +112,12 @@ module Scrabble =
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
-                
-                
-                
-                //TODO: Update some Map<coord, tile> or similar (which should be part of the state???), which tells us where tiles are now placed
-
+        
                 let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), (uint32) 1)) ms
                 let handRemoveOld = MultiSet.subtract st.hand (setListToHand playedTiles)
                 let handAddNew = MultiSet.sum handRemoveOld (setListToHand newPieces)
-                let udpateMap = List.fold (fun coord brik -> Map.add coord brik st.coordMap)  ms st.coordMap
+                
+                let updateMap = List.fold (fun newmap  (coord, brik) -> Map.add coord brik newmap)   st.coordMap ms
 
                 let st' =   State.mkState 
                                         st.board
@@ -131,11 +128,10 @@ module Scrabble =
                                         st.forfeited 
                                         (st.points + points) 
                                         handAddNew
-                                        st.coordMap
+                                        updateMap
                 
-                forcePrint(" Det her er hand " + st.hand.ToString())
-                forcePrint(":)")
-                forcePrint("DET ER HER DANSKERE: "+ ms.ToString() + "\n\n")
+                forcePrint(" Det her er den nye hånd " + st'.hand.ToString())
+                
                 forcePrint("Your player number: " + st'.playerNumber.ToString() + "\n\n")
                 forcePrint("Your state: " + st'.ToString() + "\n\n")
                 forcePrint("Next player: " + st'.playerTurn.ToString() + "\n\n")
