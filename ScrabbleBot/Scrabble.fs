@@ -52,10 +52,11 @@ module State =
         points        : int
         hand          : MultiSet.MultiSet<uint32>
         coordMap      : Map<coord, (uint32 * (char * int))>
+        anchorLists   : List<coord * (uint32 * (char * int))> * List<coord * (uint32 * (char * int))>
     }
     
     type coordTile = coord * (uint32 * (char *int))
-    let mkState b d np pn pt f p h cm= {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; }
+    let mkState b d np pn pt f p h cm anclst= {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = anclst }
 
     let board st         = st.board
     let dict st          = st.dict
@@ -126,9 +127,15 @@ module Scrabble =
     let checkUpNeighbor ((x,y) : coord) coordMap =
         not (Map.containsKey (x,y-1) coordMap)
      
-    let findDownRightAnchors (coordMap : Map<coord, (uint32 * (char * int))>)= 
-        Map.fold (fun anchorList key value -> if (checkUpNeighbor key coordMap || checkLeftNeighbor key coordMap ) then (key,value)::anchorList else anchorList ) List.empty coordMap
-    
+    let updateAnchors (coordMap : Map<coord, (uint32 * (char * int))>)= 
+        Map.fold (fun (anchorListHorizontal, anchorListVertical) key value ->
+            match ( checkLeftNeighbor key coordMap, checkUpNeighbor key coordMap) with
+                |(true,true) -> ((key,value) :: anchorListHorizontal, (key,value) :: anchorListVertical)
+                |(true,false) ->  ((key,value) :: anchorListHorizontal, anchorListVertical)
+                |(false, true) -> (anchorListHorizontal, (key,value) :: anchorListVertical)
+                | _ -> (anchorListHorizontal,anchorListVertical)
+           ) (List.empty, List.Empty) coordMap
+        
     let legalMove (x: State.coordTile) =
         // TODO this should exist for ease of use
         x
@@ -192,17 +199,16 @@ module Scrabble =
                 let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), (uint32) 1)) ms
                 let handRemoveOld = MultiSet.subtract st.hand (setListToHand playedTiles)
                 let handAddNew = MultiSet.sum handRemoveOld (setListToHand newPieces)
-
-                let st' =   State.mkState 
-                                        st.board
-                                        st.dict 
-                                        st.numOfPlayers 
-                                        st.playerNumber 
-                                        (getNextPlayerTurn st)
-                                        st.forfeited 
-                                        (st.points + points) 
-                                        handAddNew
-                                        (updateMap st.coordMap ms)
+                let coordMap' = (updateMap st.coordMap ms) 
+                let st' =   { st with
+                                playerTurn = (getNextPlayerTurn st)
+                                points = st.points + points
+                                hand = handAddNew
+                                coordMap = coordMap'
+                                anchorLists = updateAnchors coordMap'
+                    
+                    
+                }                                        
                 
                 forcePrint("Your hand: " + st'.hand.ToString())
                 forcePrint("The board: " + st'.coordMap.ToString())
@@ -215,10 +221,12 @@ module Scrabble =
                 aux st'
 
             | RCM (CMPlayed (pid, ms, points)) ->
-                (* Successful play by other player. Update your state *)              
+                (* Successful play by other player. Update your state *)
+                let coordMap' = (updateMap st.coordMap ms)              
                 let st' = {st with
                             playerTurn = (getNextPlayerTurn st);
-                            coordMap = (updateMap st.coordMap ms);
+                            coordMap = coordMap'
+                            anchorLists = (updateAnchors coordMap')
                            } 
                 
                 aux st'
@@ -296,7 +304,7 @@ module Scrabble =
                   
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
 
-        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty)
+        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (List.empty, List.Empty))
         
     
     
