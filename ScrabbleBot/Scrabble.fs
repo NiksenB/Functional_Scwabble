@@ -56,7 +56,7 @@ module State =
     }
     
     type coordTile = coord * (uint32 * (char *int))
-    let mkState b d np pn pt f p h cm anclst= {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = anclst }
+    let mkState b d np pn pt f p h cm anclsts= {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = anclsts }
 
     let board st         = st.board
     let dict st          = st.dict
@@ -66,9 +66,9 @@ module State =
     let forfeited st     = st.forfeited 
     let points st        = st.points
     let hand st          = st.hand
+    let coordMap st      = st.coordMap
+    let anchorLists st          = st.anchorLists
     
-
-
 
 
 module Scrabble =
@@ -127,7 +127,7 @@ module Scrabble =
     let checkUpNeighbor ((x,y) : coord) coordMap =
         not (Map.containsKey (x,y-1) coordMap)
      
-    let updateAnchors (coordMap : Map<coord, (uint32 * (char * int))>)= 
+    let updateAnchors (coordMap : Map<coord, (uint32 * (char * int))>) = 
         Map.fold (fun (anchorListHorizontal, anchorListVertical) key value ->
             match ( checkLeftNeighbor key coordMap, checkUpNeighbor key coordMap) with
                 |(true,true) -> ((key,value) :: anchorListHorizontal, (key,value) :: anchorListVertical)
@@ -145,7 +145,7 @@ module Scrabble =
             let this = step  c dict
             list.Empty
             
-    let findMove anchorList coordmap dict=       
+    let findMove anchorList coordmap dict =       
         
         List.fold (fun acc x -> findWordRight (x dict) acc ) List.Empty anchorList
        
@@ -206,8 +206,6 @@ module Scrabble =
                                 hand = handAddNew
                                 coordMap = coordMap'
                                 anchorLists = updateAnchors coordMap'
-                    
-                    
                 }                                        
                 
                 forcePrint("Your hand: " + st'.hand.ToString())
