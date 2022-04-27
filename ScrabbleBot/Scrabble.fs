@@ -130,8 +130,8 @@ module Scrabble =
                                         handAddNew
                                         updateMap
                 
-                forcePrint(" Det her er den nye hånd " + st'.hand.ToString())
-                
+                forcePrint("Your hand: " + st'.hand.ToString())
+                forcePrint("The board: " + st'.coordMap.ToString())
                 forcePrint("Your player number: " + st'.playerNumber.ToString() + "\n\n")
                 forcePrint("Your state: " + st'.ToString() + "\n\n")
                 forcePrint("Next player: " + st'.playerTurn.ToString() + "\n\n")
