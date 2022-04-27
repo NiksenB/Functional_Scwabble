@@ -70,6 +70,34 @@ module State =
 
 module Scrabble =
     open System.Threading
+    
+    //TODO below takes a million years, we should rewrite to account for coordmap because this doesnt work
+    let findMove (dict : Dict) (state : State.state) (ms : List<coord * (uint32 * (char *int))>) (pc : Map<uint32, tile>) =
+                    //find valide ord ud fra de brikker vi har
+                    let hand = state.hand
+                    let rec loopthroughhand (hand : MultiSet.MultiSet<uint32>) acc ( (word : string), (nums : uint32 list)) =
+                        if MultiSet.isEmpty hand
+                        then acc
+                        else
+                        let list = MultiSet.toList hand
+                        List.fold (fun acc x ->
+                            let beh = Map.find x pc //dette er en tile og bogstav skal derfor trækkes ud herfra
+                            let char = fst ((Set.toList beh)[0])
+                            let validWord = step char dict //erstat 'b' med char når lortet virker //TODO 
+                            let newWordNums = (word.Insert(-1, char.ToString()), nums@[x]) //wow 
+                            
+                            if validWord.IsSome
+                            then
+                               if fst validWord.Value
+                               then loopthroughhand (MultiSet.removeSingle x hand) (acc@[newWordNums]) newWordNums
+                               else loopthroughhand (MultiSet.removeSingle x hand) acc newWordNums
+                            else
+                                acc      
+                            ) [] list
+            
+
+        
+                    loopthroughhand hand [] ("", [])  
 
     let setListToHand h = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty h
 
@@ -89,6 +117,7 @@ module Scrabble =
         playerTurnHelper st.numOfPlayers (st.playerTurn + (uint32) 1) st.playerTurn st.forfeited
     
     
+    let updateMap oldmap message= List.fold (fun newmap (coord, brik) -> Map.add coord brik newmap) oldmap message
     
     let playGame cstream pieces (st : State.state) =
 
@@ -100,6 +129,8 @@ module Scrabble =
             
             //TODO: Here below is where we should replace "input" from terminal with our algorithm function call
             //NOTE: Should only call the function to make a move, and "send cstream" if it is indeed our turn??
+            
+            
             let input =  System.Console.ReadLine()
             let move = RegEx.parseMove input
 
@@ -116,8 +147,6 @@ module Scrabble =
                 let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), (uint32) 1)) ms
                 let handRemoveOld = MultiSet.subtract st.hand (setListToHand playedTiles)
                 let handAddNew = MultiSet.sum handRemoveOld (setListToHand newPieces)
-                
-                let updateMap = List.fold (fun newmap  (coord, brik) -> Map.add coord brik newmap)   st.coordMap ms
 
                 let st' =   State.mkState 
                                         st.board
@@ -128,7 +157,7 @@ module Scrabble =
                                         st.forfeited 
                                         (st.points + points) 
                                         handAddNew
-                                        updateMap
+                                        (updateMap st.coordMap ms)
                 
                 forcePrint("Your hand: " + st'.hand.ToString())
                 forcePrint("The board: " + st'.coordMap.ToString())
@@ -137,23 +166,22 @@ module Scrabble =
                 forcePrint("Next player: " + st'.playerTurn.ToString() + "\n\n")
                 forcePrint("Your points: " + st'.points.ToString() + "\n\n")
                 forcePrint(" ----- ----- ----- ----- -----")
-                //let words = findMove st.dict st ms pieces 
-                //forcePrint(" " + words.ToString())
+                let words = findMove st.dict st ms pieces
+                forcePrint("penis" + words.ToString())
                 
                 aux st'
 
             | RCM (CMPlayed (pid, ms, points)) ->
-                (* Successful play by other player. Update your state *)
-                
-                //TODO: Make sure the state also updates the board, not just player turn
-
-                let st' = {st with playerTurn = (getNextPlayerTurn st)} 
+                (* Successful play by other player. Update your state *)              
+                let st' = {st with
+                            playerTurn = (getNextPlayerTurn st);
+                            coordMap = (updateMap st.coordMap ms);
+                           } 
                 
                 aux st'
 
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
-
                 let st' = {st with playerTurn = (getNextPlayerTurn st)}
                  
                 aux st'
@@ -229,30 +257,10 @@ module Scrabble =
         
     
     
-    let findMove (dict : Dict) (state : State.state) (ms : List<coord * (uint32 * (char *int))>) (pc : Map<uint32, tile>) =
-                    //find valide ord ud fra de brikker vi har
-                    let hand = state.hand
-                    let rec loopthroughhand (hand : MultiSet.MultiSet<uint32>) acc ( (word : string), (nums : uint32 list)) =
-                        if MultiSet.isEmpty hand
-                        then acc
-                        else
-                        let list = MultiSet.toList hand
-                        List.fold (fun acc x ->
-                            let char = Map.find x pc //dette er en tile og bogstav skal derfor trækkes ud herfra
-                            let validWord = step 'b' dict //erstat 'b' med char når lortet virker //TODO 
-                            let newWordNums = (word.Insert(-1, char.ToString()), nums@[x]) //wow 
-                            
-                            if validWord.IsSome
-                            then
-                               if fst validWord.Value
-                               then loopthroughhand (MultiSet.removeSingle x hand) (acc@[newWordNums]) newWordNums
-                               else loopthroughhand (MultiSet.removeSingle x hand) acc newWordNums
-                            else acc      
-                            ) [] list
-            
-
-        
-                    loopthroughhand hand [] ("", [])   
+    
+    
+    
+     
             
 
     
