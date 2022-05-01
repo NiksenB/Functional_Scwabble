@@ -1,5 +1,6 @@
 ﻿namespace Scwabble
 
+open MultiSet
 open ScrabbleUtil
 open ScrabbleUtil.Dictionary
 open ScrabbleUtil.ServerCommunication
@@ -140,14 +141,43 @@ module Scrabble =
         // TODO this should exist for ease of use
         x
         
-    let findWordRight ((coord, (id , (c , point))), dict) acc =
+    let rec findWordRight ((coord, (id , (c , point)))) acc (st : State.state) (dict : Dict) currentWord (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) =
+            let isVacantRight = Map.containsKey (fst coord+1, snd coord) st.coordMap
+            if isVacantRight
+            then
+                let hand = st.hand
+                let nextDict = step c dict
+                if Option.isSome nextDict
+                then
+                    let isValidWord = fst (nextDict.Value)
+                    if isValidWord && haveAddedOwnLetter
+                    then
+                        acc
+                    else
+                        //for tile in hand
+                        //MultiSet.fold (fun acc element howMany -> ) [] st.hand
+                        MultiSet.map (fun id' ->
+                                      //find char er hører til id
+                                      //kald findwordright med det char, med hand - char
+                                      let tile = Map.find id' pieces
+                                      let ch = fst ((Set.toList tile)[0]) //denne tile kan være 1 bogstav eller 26 bogstaver
+                                      let point' = snd ((Set.toList tile)[0])
+                                      let coord' = (fst coord+1, snd coord)
+                                      let dict' = snd (nextDict.Value)
+                                      let currentWord'  = currentWord@[(coord', (id' , (ch , point')))] 
+                                      let newMultiSet = MultiSet.removeSingle id' hand 
+                                       
+                                      findWordRight (((coord', (id' , (ch , point'))) acc st dict' currentWord' true newMultiSet pieces
+                                      ))) hand
+                else
+                    acc
+            else 
+            let this = step c st.dict
+            acc
             
-            let this = step  c dict
-            list.Empty
-            
-    let findMove anchorList coordmap dict =       
+    let findMove anchorList (st : State.state) =       
         
-        List.fold (fun acc x -> findWordRight (x dict) acc ) List.Empty anchorList
+        //List.fold (fun acc x -> findWordRight x acc st) List.Empty anchorList
        
     
             
