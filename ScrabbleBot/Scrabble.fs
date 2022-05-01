@@ -54,10 +54,11 @@ module State =
         hand          : MultiSet.MultiSet<uint32>
         coordMap      : Map<coord, (uint32 * (char * int))>
         anchorLists   : List<coord * (uint32 * (char * int))> * List<coord * (uint32 * (char * int))>
+        crossCheck    : Map<coord, Set<char>>
     }
     
     type coordTile = coord * (uint32 * (char *int))
-    let mkState b d np pn pt f p h cm anclsts= {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = anclsts }
+    let mkState b d np pn pt f p h cm al cc = {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossCheck = cc }
 
     let board st         = st.board
     let dict st          = st.dict
@@ -69,6 +70,7 @@ module State =
     let hand st          = st.hand
     let coordMap st      = st.coordMap
     let anchorLists st          = st.anchorLists
+    let crossCheck st = st.crossCheck
     
 
 
@@ -122,61 +124,120 @@ module Scrabble =
     //     goFind dict state.coordMap state.hand pieces -1 
 
 
-    let checkLeftNeighbor ((x,y) : coord) coordMap = 
+    let hasNotLeftNeighbor ((x,y) : coord) coordMap = 
         not (Map.containsKey (x-1,y) coordMap)
     
-    let checkUpNeighbor ((x,y) : coord) coordMap =
+    let hasNotUpNeighbor ((x,y) : coord) coordMap =
         not (Map.containsKey (x,y-1) coordMap)
-     
+    
+    let hasNotDownNeighbor ((x,y) : coord) coordMap =
+        not (Map.containsKey (x,y+1) coordMap)
+        
+    let getNextUpCoord coord=
+        (fst coord, snd coord - 1)
+    
+    let getNextDownCoord coord=
+        (fst coord, snd coord + 1) 
     let updateAnchors (coordMap : Map<coord, (uint32 * (char * int))>) = 
         Map.fold (fun (anchorListHorizontal, anchorListVertical) key value ->
-            match ( checkLeftNeighbor key coordMap, checkUpNeighbor key coordMap) with
+            match ( hasNotLeftNeighbor key coordMap, hasNotUpNeighbor key coordMap) with
                 |(true,true) -> ((key,value) :: anchorListHorizontal, (key,value) :: anchorListVertical)
                 |(true,false) ->  ((key,value) :: anchorListHorizontal, anchorListVertical)
                 |(false, true) -> (anchorListHorizontal, (key,value) :: anchorListVertical)
                 | _ -> (anchorListHorizontal,anchorListVertical)
            ) (List.empty, List.Empty) coordMap
+    
+    let crossCheckUpAndUp crossCheckRules coord brikken coordmap newMoves =
+        match (hasNotUpNeighbor coord newMoves, hasNotUpNeighbor (getNextUpCoord coord) newMoves) with
+            |(true, false) ->
+                // TODO this is where theres i both a neighboor up and down, we need to go up all the way first
+                crossCheckRules
+                //above is placeholder
+            |(true, true) ->
+                //TODO this is where we have no up up neighboor and we only need to look down.
+                crossCheckRules
+                // above is placeholder
+            | _ -> crossCheckRules
+    
+    let crossCheckDownAndDown crossCheckRules coord brikken coordMap newMoves =
+        match (hasNotDownNeighbor coord newMoves, hasNotDownNeighbor (getNextDownCoord coord) newMoves) with 
+            | (true, false)  ->
+                //this should be checked by the match above
+                crossCheckRules
+            | (true, true) ->
+              // this is where there is two free spaces below and therefore not found by the match above,
+              // TODO we need to look up the word to find what it says so we can place letters
+               crossCheckRules
+            | _ -> crossCheckRules
+    
+    let rec updateCrossChecks (newMoves : Map<coord, (uint32 * (char * int))>) coordmap =
+        Map.fold (fun acc key value ->
+            // this checks if above is free and if above above is free
+            let newAcc = crossCheckUpAndUp acc key value coordmap newMoves
+            
+            // this finds the one where there is two down free
+            crossCheckDownAndDown newAcc key value coordmap newMoves
+            
+            //TODO continure this trend but look for crosschecks on words that go vertical. 
+            acc) list.Empty newMoves
+            // todo update the state with the new rules 
         
     let legalMove (x: State.coordTile) =
         // TODO this should exist for ease of use
         x
-        
-    let rec findWordRight ((coord, (id , (c , point)))) acc (st : State.state) (dict : Dict) currentWord (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) =
-            let isVacantRight = Map.containsKey (fst coord+1, snd coord) st.coordMap
-            if isVacantRight
+    
+    let getNextRightCoord coord =
+        (fst coord+1, snd coord)
+    
+    
+    let rec findWord (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun =
+            let isOccupiedRight = Map.containsKey (coordFun coord) st.coordMap
+            if not isOccupiedRight
             then
-                let hand = st.hand
-                let nextDict = step c dict
+                let nextDict = step ch dict
                 if Option.isSome nextDict
                 then
                     let isValidWord = fst (nextDict.Value)
                     if isValidWord && haveAddedOwnLetter
                     then
-                        acc
+                          (true,snd (currentWord))
                     else
-                        //for tile in hand
-                        //MultiSet.fold (fun acc element howMany -> ) [] st.hand
-                        MultiSet.map (fun id' ->
-                                      //find char er hører til id
-                                      //kald findwordright med det char, med hand - char
-                                      let tile = Map.find id' pieces
-                                      let ch = fst ((Set.toList tile)[0]) //denne tile kan være 1 bogstav eller 26 bogstaver
-                                      let point' = snd ((Set.toList tile)[0])
-                                      let coord' = (fst coord+1, snd coord)
-                                      let dict' = snd (nextDict.Value)
-                                      let currentWord'  = currentWord@[(coord', (id' , (ch , point')))] 
-                                      let newMultiSet = MultiSet.removeSingle id' hand 
-                                       
-                                      findWordRight (((coord', (id' , (ch , point'))) acc st dict' currentWord' true newMultiSet pieces
-                                      ))) hand
+                          fold (fun acc id' amountOfElements->
+                              if fst acc
+                              then acc
+                              else
+                                  //find char der hører til id
+                                  //kald findwordright med det char, med hand - char
+                                  //TODO tag højde for crosschecks, ny liste det er intersectede med crosscheck uden for looepet
+
+                                  let tile = Map.find id' pieces
+                                  let ch' = fst ((Set.toList tile)[0]) //denne tile kan være 1 bogstav eller 26 bogstaver
+                                  //TODO tag højde for brik der kan være alle bogstaver
+                                  let point' = snd ((Set.toList tile)[0])
+                                  let coord' = coordFun coord
+                                  let dict' = snd (nextDict.Value)
+                                  let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
+                                  let newMultiSet = removeSingle id' hand 
+                                  
+                                  findWord (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun
+                                  
+                          ) (false, List.Empty) hand
+
                 else
-                    acc
-            else 
-            let this = step c st.dict
-            acc
+                    (false, snd (currentWord))
+            else
+                let letter = Map.find (fst coord+1, snd coord) st.coordMap
+                let id' = (fst letter)
+                let dict' = snd ((step ch dict).Value)
+                let tile = Map.find id' pieces
+                let point' = snd (snd letter)
+                let coord' = coordFun coord
+                let ch' = (fst (snd (letter)))
+                
+                findWord (coord', (id', (ch', point'))) currentWord st dict' true hand pieces coordFun
             
     let findMove anchorList (st : State.state) =       
-        
+        //For each move right call with get nextrightcoord.
         //List.fold (fun acc x -> findWordRight x acc st) List.Empty anchorList
        
     
@@ -332,7 +393,7 @@ module Scrabble =
                   
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
 
-        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (List.empty, List.Empty))
+        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (List.empty, List.Empty)) Map.empty
         
     
     
