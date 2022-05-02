@@ -8,6 +8,7 @@ open ScrabbleUtil.ServerCommunication
 open System.IO
 
 open ScrabbleUtil.DebugPrint
+open StateMonad
 
 // The RegEx module is only used to parse human input. It is not used for the final product.
 
@@ -133,21 +134,54 @@ module Scrabble =
                 | _ -> (anchorListHorizontal,anchorListVertical)
            ) (List.empty, List.Empty) coordMap
     
-    let crossCheckUpAndUp crossCheckRules brik coordmap newMoves =
+    let crossCheckUpAndUp (crossCheckRules : Map<coord, Set<char>>) brik (coordmap : Map<coord, (uint32 * (char * int))>)  newMoves (state : State.state) =
         let coord = fst brik
-        //Before this check coordmap has been updated with the new moves as well, very important this is done. 
+        //Before this check coordmap has been updated with the new moves as well, very important this is done.
+        let exactlyOneFreeAbove = (true, false)
+        let twoFreeAbove = (true, true)
+        
         match (hasNotUpNeighbor coord coordmap, hasNotUpNeighbor (getNextUpCoord coord) coordmap) with
-            |(true, false) ->
+            | exactlyOneFreeAbove ->
                 // TODO this is where theres i both a neighboor up and down, we need to go up all the way first
-                crossCheckRules
-                //above is placeholder
-            |(true, true) ->
+                let emptyTile = getNextUpCoord coord
+        
+                let rec goToStartOfWord (x, y) acc =
+                    if Map.containsKey (x,y-1) coordmap
+                    then goToStartOfWord (x,(y-1)) ([Map.find (x,(y-1)) coordmap] @ acc)
+                    else acc
+                let wordAbove = goToStartOfWord emptyTile List.Empty
+                
+                let rec stepThruWord wordSoFar (dict : Option<bool * Dict>) =
+                    match wordSoFar with
+                    |[] -> dict
+                    | (id , (ch , point)) :: wordSoFar ->
+                        let dict' = step ch (snd (dict.Value))
+                        stepThruWord wordSoFar dict'
+                
+                let rec goToStartOfWordBelow (x, y) acc =
+                    if Map.containsKey (x,y+1) coordmap
+                    then goToStartOfWord (x,(y+1)) ([Map.find (x,(y+1)) coordmap] @ acc)
+                    else acc
+                
+                let wordBelow = goToStartOfWordBelow emptyTile List.Empty
+                
+                let dictFromWordAbove = stepThruWord wordAbove (Option.Some (false, state.dict))
+                if dictFromWordAbove.IsSome 
+                then
+                    let validLetters = (snd (dictFromWordAbove.Value))
+                    //TODO run through all the valid letters and see if we can match the dicts with the wordbelow
+                    
+                    crossCheckRules
+                else
+                    Map.add  (getNextUpCoord coord ) Set.empty crossCheckRules
+                
+            |twoFreeAbove ->
                 //TODO this is where we have no up up neighboor and we only need to look down.
                 crossCheckRules
                 // above is placeholder
             | _ -> crossCheckRules
     
-    let crossCheckDownAndDown crossCheckRules (brik : (coord * (uint32 * (char * int)))) coordMap newMoves =
+    let crossCheckDownAndDown crossCheckRules (brik : (coord * (uint32 * (char * int)))) coordMap newMoves state =
         let coord = fst brik
         match (hasNotDownNeighbor coord coordMap, hasNotDownNeighbor (getNextDownCoord coord) coordMap) with 
             | (true, false)  ->
@@ -159,14 +193,14 @@ module Scrabble =
                crossCheckRules
             | _ -> crossCheckRules
     
-    let rec updateCrossChecks (newMoves : (coord * (uint32 * (char * int))) list) coordMap (crossCheck : Map<coord, Set<char>>)=
+    let rec updateCrossChecks (newMoves : (coord * (uint32 * (char * int))) list) coordMap (crossCheck : Map<coord, Set<char>>) state=
         
         List.fold (fun acc brik ->
             // this checks if above is free and if above above is free
-            let newAcc = crossCheckUpAndUp acc brik coordMap newMoves
+            let newAcc = crossCheckUpAndUp acc brik coordMap newMoves state
             
             // this finds the one where there is two down free
-            let newAcc2 = crossCheckDownAndDown newAcc brik coordMap newMoves
+            let newAcc2 = crossCheckDownAndDown newAcc brik coordMap newMoves state
             
             //TODO continure this trend but look for crosschecks on words that go vertical. 
             newAcc2
@@ -277,7 +311,7 @@ module Scrabble =
                 let handRemoveOld = MultiSet.subtract st.hand (setListToHand playedTiles)
                 let handAddNew = MultiSet.sum handRemoveOld (setListToHand newPieces)
                 let coordMap' = (updateMap st.coordMap ms) 
-                let crossCheck' = updateCrossChecks ms coordMap' st.crossCheck
+                let crossCheck' = updateCrossChecks ms coordMap' st.crossCheck st
 
                 let st' =   { st with
                                 playerTurn = (getNextPlayerTurn st)
@@ -302,7 +336,7 @@ module Scrabble =
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
                 let coordMap' = (updateMap st.coordMap ms)       
-                let crossCheck' = updateCrossChecks ms coordMap' st.crossCheck       
+                let crossCheck' = updateCrossChecks ms coordMap' st.crossCheck st    
 
                 let st' = {st with
                             playerTurn = (getNextPlayerTurn st);
