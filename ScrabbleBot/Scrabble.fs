@@ -227,7 +227,7 @@ module Scrabble =
             // todo update the state with the new rules     
     
     let rec findWord (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun =
-        
+
         let isOccupiedRight = Map.containsKey (coordFun coord) st.coordMap
         
         if not isOccupiedRight
@@ -272,11 +272,17 @@ module Scrabble =
             let ch' = (fst (snd letter))
             
             findWord (coord', (id', (ch', point'))) currentWord st dict' true hand pieces coordFun
-            
-    let findMove anchorList (st : State.state) =
-        1
-        //For each move right call with get nextrightcoord.
-        //List.fold (fun acc x -> findWordRight x acc st) List.Empty anchorList
+
+    
+    let findOneMove (st : State.state) pieces coordFun =
+               
+        List.fold (fun acc x  -> 
+            if fst acc 
+            then acc
+            else
+                findWord (x) (false, List.Empty) st st.dict false st.hand pieces coordFun
+        ) (false,List.Empty) (fst st.anchorLists) 
+        
            
     let setListToHand h = List.fold (fun acc (x, k) -> add x k acc) empty h
 
@@ -300,23 +306,34 @@ module Scrabble =
     let playGame cstream pieces (st : State.state) =
 
         let rec aux (st : State.state) =
-            Print.printHand pieces (State.hand st)
+            //Print.printHand pieces (State.hand st)
 
             // remove the force print when you move on from manual input (or when you have learnt the format)
             //forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
             
-            //TODO: Here below is where we should replace "input" from terminal with our algorithm function call
-            //NOTE: Should only call the function to make a move, and "send cstream" if it is indeed our turn??
-            
-            
-            let input =  System.Console.ReadLine()
-            let move = RegEx.parseMove input
 
-            debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-            send cstream (SMPlay move)
-
+            //TODO should we somehow check that st.playerTurn = st.playerNumber before trying to play?
+            
+            Print.printHand pieces (State.hand st)
+            let theMoveWellTryToMake : bool * list<coord * (uint32 * (char * int))> = findOneMove st pieces ((fun (x,y) -> coord (x,y)))
+            if fst theMoveWellTryToMake
+            then 
+                debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
+                send cstream (SMPlay (snd theMoveWellTryToMake))
+            else send cstream (SMPass)
             let msg = recv cstream
-            debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+            debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
+
+
+
+            //let input =  System.Console.ReadLine()
+            //let move = RegEx.parseMove input
+
+            //debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+            //send cstream (SMPlay move)
+
+            // let msg = recv cstream
+            // debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
 
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
@@ -399,13 +416,14 @@ module Scrabble =
                 aux st'
 
             | RCM (CMTimeout pid) ->
-                //SOme player timed out, which means they pass their turn
+                //Some player timed out, which means they pass their turn
                 let st' = {st with playerTurn = (getNextPlayerTurn {st with playerTurn = pid})} //again, making sure that we have the right "current" player stored might be redundant.
                 aux st'
 
             | RCM a -> failwith (sprintf "RCM not implmented: %A" a)
-            
-            //TODO: Handle different Gameplay errors (see Scrabble.pdf)
+        
+        
+            //TODO Handle a few of the different Gameplay errors? (see Scrabble.pdf)
             | RGPE err -> printfn "Gameplay Error:\n%A" err; aux st
     
     
