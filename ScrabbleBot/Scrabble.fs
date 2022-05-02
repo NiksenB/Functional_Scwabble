@@ -133,8 +133,10 @@ module Scrabble =
                 | _ -> (anchorListHorizontal,anchorListVertical)
            ) (List.empty, List.Empty) coordMap
     
-    let crossCheckUpAndUp crossCheckRules coord brikken coordmap newMoves =
-        match (hasNotUpNeighbor coord newMoves, hasNotUpNeighbor (getNextUpCoord coord) newMoves) with
+    let crossCheckUpAndUp crossCheckRules brik coordmap newMoves =
+        let coord = fst brik
+        //Before this check coordmap has been updated with the new moves as well, very important this is done. 
+        match (hasNotUpNeighbor coord coordmap, hasNotUpNeighbor (getNextUpCoord coord) coordmap) with
             |(true, false) ->
                 // TODO this is where theres i both a neighboor up and down, we need to go up all the way first
                 crossCheckRules
@@ -145,8 +147,9 @@ module Scrabble =
                 // above is placeholder
             | _ -> crossCheckRules
     
-    let crossCheckDownAndDown crossCheckRules coord brikken coordMap newMoves =
-        match (hasNotDownNeighbor coord newMoves, hasNotDownNeighbor (getNextDownCoord coord) newMoves) with 
+    let crossCheckDownAndDown crossCheckRules (brik : (coord * (uint32 * (char * int)))) coordMap newMoves =
+        let coord = fst brik
+        match (hasNotDownNeighbor coord coordMap, hasNotDownNeighbor (getNextDownCoord coord) coordMap) with 
             | (true, false)  ->
                 //this should be checked by the match above
                 crossCheckRules
@@ -156,14 +159,14 @@ module Scrabble =
                crossCheckRules
             | _ -> crossCheckRules
     
-    let rec updateCrossChecks (newMoves : Map<coord, (uint32 * (char * int))>) coordMap (crossCheck : Map<coord, Set<char>>)=
+    let rec updateCrossChecks (newMoves : (coord * (uint32 * (char * int))) list) coordMap (crossCheck : Map<coord, Set<char>>)=
         
-        Map.fold (fun acc key value ->
+        List.fold (fun acc brik ->
             // this checks if above is free and if above above is free
-            let newAcc = crossCheckUpAndUp acc key value coordMap newMoves
+            let newAcc = crossCheckUpAndUp acc brik coordMap newMoves
             
             // this finds the one where there is two down free
-            let newAcc2 = crossCheckDownAndDown newAcc key value coordMap newMoves
+            let newAcc2 = crossCheckDownAndDown newAcc brik coordMap newMoves
             
             //TODO continure this trend but look for crosschecks on words that go vertical. 
             newAcc2
@@ -221,7 +224,8 @@ module Scrabble =
             
             findWord (coord', (id', (ch', point'))) currentWord st dict' true hand pieces coordFun
             
-    let findMove anchorList (st : State.state) =       
+    let findMove anchorList (st : State.state) =
+        1
         //For each move right call with get nextrightcoord.
         //List.fold (fun acc x -> findWordRight x acc st) List.Empty anchorList
            
@@ -273,7 +277,7 @@ module Scrabble =
                 let handRemoveOld = MultiSet.subtract st.hand (setListToHand playedTiles)
                 let handAddNew = MultiSet.sum handRemoveOld (setListToHand newPieces)
                 let coordMap' = (updateMap st.coordMap ms) 
-                let crossCheck' = updateCrossChecks ms coordMap' crossCheck
+                let crossCheck' = updateCrossChecks ms coordMap' st.crossCheck
 
                 let st' =   { st with
                                 playerTurn = (getNextPlayerTurn st)
@@ -298,7 +302,7 @@ module Scrabble =
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
                 let coordMap' = (updateMap st.coordMap ms)       
-                let crossCheck' = updateCrossChecks ms coordMap' crossCheck       
+                let crossCheck' = updateCrossChecks ms coordMap' st.crossCheck       
 
                 let st' = {st with
                             playerTurn = (getNextPlayerTurn st);
