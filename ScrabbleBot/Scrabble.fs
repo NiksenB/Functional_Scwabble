@@ -8,7 +8,6 @@ open ScrabbleUtil.ServerCommunication
 open System.IO
 
 open ScrabbleUtil.DebugPrint
-open StateMonad
 
 // The RegEx module is only used to parse human input. It is not used for the final product.
 
@@ -36,7 +35,7 @@ module RegEx =
 
     let printHand pieces hand =
         hand |>
-        MultiSet.fold (fun _ x i -> forcePrint (sprintf "%d -> (%A, %d)\n" x (Map.find x pieces) i)) ()
+        fold (fun _ x i -> forcePrint (sprintf "%d -> (%A, %d)\n" x (Map.find x pieces) i)) ()
 
 module State = 
     // Make sure to keep your state localised in this module. It makes your life a whole lot easier.
@@ -46,14 +45,14 @@ module State =
 
     type state = {
         board         : Parser.board
-        dict          : ScrabbleUtil.Dictionary.Dict
+        dict          : Dict
         numOfPlayers  : uint32
         playerNumber  : uint32
         playerTurn    : uint32
         forfeited     : Set<uint32>
         points        : int
         hand          : MultiSet.MultiSet<uint32>
-        coordMap      : Map<coord, (uint32 * (char * int))>
+        coordMap      : Map<coord, uint32 * (char * int)>
         anchorLists   : List<coord * (uint32 * (char * int))> * List<coord * (uint32 * (char * int))>
         crossCheck    : Map<coord, Set<char>>
     }
@@ -125,12 +124,12 @@ module Scrabble =
     let getNextRightCoord coord =
         (fst coord + 1, snd coord)
 
-    let updateAnchors (coordMap : Map<coord, (uint32 * (char * int))>) = 
+    let updateAnchors (coordMap : Map<coord, uint32 * (char * int)>) = 
         Map.fold (fun (anchorListHorizontal, anchorListVertical) key value ->
             match ( hasNotLeftNeighbor key coordMap, hasNotUpNeighbor key coordMap) with
-                |(true,true) -> ((key,value) :: anchorListHorizontal, (key,value) :: anchorListVertical)
-                |(true,false) ->  ((key,value) :: anchorListHorizontal, anchorListVertical)
-                |(false, true) -> (anchorListHorizontal, (key,value) :: anchorListVertical)
+                |true,true -> ((key,value) :: anchorListHorizontal, (key,value) :: anchorListVertical)
+                |true,false ->  ((key,value) :: anchorListHorizontal, anchorListVertical)
+                |false, true -> (anchorListHorizontal, (key,value) :: anchorListVertical)
                 | _ -> (anchorListHorizontal,anchorListVertical)
            ) (List.empty, List.Empty) coordMap
     
@@ -146,8 +145,8 @@ module Scrabble =
     let rec stepThruWord wordSoFar (dict : Option<bool * Dict>) =
         match wordSoFar with
         |[] -> dict
-        | (id , (ch , point)) :: wordSoFar ->
-            let dict' = step ch (snd (dict.Value))
+        | (_ , (ch , _)) :: wordSoFar ->
+            let dict' = step ch (snd dict.Value)
             stepThruWord wordSoFar dict'
     
     let lookUpWithStringStartingAtEveryLetterOfAlphabet word dict =
@@ -158,52 +157,52 @@ module Scrabble =
             let dict' = step char dict
             if dict'.IsSome
             then                
-                let wordExists = Dictionary.lookup word (snd (dict'.Value))
+                let wordExists = lookup word (snd dict'.Value)
                 if wordExists then acc @ [char] else acc
             else
                 acc
             ) [] chars
         Set.ofList validLetters 
     
-    let crossCheckUpAndUp (crossCheckRules : Map<coord, Set<char>>) brik (coordmap : Map<coord, (uint32 * (char * int))>) (state : State.state) =
+    let crossCheckUpAndUp (crossCheckRules : Map<coord, Set<char>>) brik (coordmap : Map<coord, uint32 * (char * int)>) (state : State.state) =
         let coord = fst brik
         //Before this check coordmap has been updated with the new moves as well, very important this is done.
         let exactlyOneFreeAbove = (true, false)
         let twoFreeAbove = (true, true)
         
         match (hasNotUpNeighbor coord coordmap, hasNotUpNeighbor (getNextUpCoord coord) coordmap) with
-            |(true, false) ->
+            |true, false ->
                 // this is where theres emptytile both a neighboor up and down, we need to go up all the way first
                 let emptyTile = getNextUpCoord coord      
                 let wordBelowAsList = goToStartOfWordBelow emptyTile List.Empty coordmap
-                let wordBelow = List.fold (fun acc (id, (ch, point)) -> acc+ch.ToString()) "" wordBelowAsList
+                let wordBelow = List.fold (fun acc (_, (ch, _)) -> acc+ch.ToString()) "" wordBelowAsList
                 let wordAbove = goToStartOfWordAbove emptyTile List.Empty coordmap
                 let dictFromWordAbove = stepThruWord wordAbove (Option.Some (false, state.dict))
                 if dictFromWordAbove.IsSome 
                 then
-                    let dictFromAboveNotOption = snd (dictFromWordAbove).Value
+                    let dictFromAboveNotOption = snd dictFromWordAbove.Value
                     let validLetters = lookUpWithStringStartingAtEveryLetterOfAlphabet wordBelow dictFromAboveNotOption                    
                     //TODO, if something already has rules for this tiles, we may need to intersect, but this however is the first rule called, so we may not need.
                     Map.add emptyTile validLetters crossCheckRules
                 else
                     Map.add  (getNextUpCoord coord ) Set.empty crossCheckRules
                 
-            |(true, true) ->
+            |true, true ->
                 //No upstairs word, we only need to looks down
                 let emptyTile = getNextUpCoord coord
                 let wordBelowAsList = goToStartOfWordBelow emptyTile List.Empty coordmap
-                let wordBelow = List.fold (fun acc (id, (ch, point)) -> acc+ch.ToString()) "" wordBelowAsList
+                let wordBelow = List.fold (fun acc (_, (ch, _)) -> acc+ch.ToString()) "" wordBelowAsList
                 let dict =  state.dict
                 let validLetters = lookUpWithStringStartingAtEveryLetterOfAlphabet wordBelow dict                    
                 Map.add emptyTile validLetters crossCheckRules
                 
             | _ -> crossCheckRules
     
-    let crossCheckDownAndDown crossCheckRules (brik : (coord * (uint32 * (char * int)))) coordMap state =
+    let crossCheckDownAndDown crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
         //the crosscheckDownDown only needs to find if the two below are free, as the crosscheckupandup will have found any empty tile between to vertical words.
         let coord = fst brik
         match (hasNotDownNeighbor coord coordMap, hasNotDownNeighbor (getNextDownCoord coord) coordMap) with 
-            | (true, true) ->
+            | true, true ->
               // this is where there is two free spaces below and therefore not found by the match above,
               // TODO we need to look up the word to find what it says so we can place letters
                crossCheckRules
@@ -236,10 +235,10 @@ module Scrabble =
             let nextDict = step ch dict
             if Option.isSome nextDict
             then
-                let isValidWord = fst (nextDict.Value)
+                let isValidWord = fst nextDict.Value
                 if isValidWord && haveAddedOwnLetter
                 then
-                    (true,snd (currentWord))
+                    (true,snd currentWord)
                 else
                     fold (fun acc id' amountOfElements->
                         if fst acc
@@ -254,7 +253,7 @@ module Scrabble =
                             //TODO tag højde for brik der kan være alle bogstaver
                             let point' = snd ((Set.toList tile)[0])
                             let coord' = coordFun coord
-                            let dict' = snd (nextDict.Value)
+                            let dict' = snd nextDict.Value
                             let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
                             let newMultiSet = removeSingle id' hand 
                             
@@ -262,15 +261,15 @@ module Scrabble =
                             
                     ) (false, List.Empty) hand
             else
-                (false, snd (currentWord))
+                (false, snd currentWord)
         else
             let letter = Map.find (fst coord+1, snd coord) st.coordMap
             let id' = (fst letter)
-            let dict' = snd ((step ch dict).Value)
+            let dict' = snd (step ch dict).Value
             let tile = Map.find id' pieces
             let point' = snd (snd letter)
             let coord' = coordFun coord
-            let ch' = (fst (snd (letter)))
+            let ch' = (fst (snd letter))
             
             findWord (coord', (id', (ch', point'))) currentWord st dict' true hand pieces coordFun
             
@@ -279,7 +278,7 @@ module Scrabble =
         //For each move right call with get nextrightcoord.
         //List.fold (fun acc x -> findWordRight x acc st) List.Empty anchorList
            
-    let setListToHand h = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty h
+    let setListToHand h = List.fold (fun acc (x, k) -> add x k acc) empty h
 
     let rec playerTurnHelper (np : uint32) (next : uint32) (pt : uint32) (f : uint32 Set)  =
         if next.Equals pt
@@ -288,13 +287,13 @@ module Scrabble =
             if np >= next && not(Set.contains next f) //the next player is existing and active
                 then next
             else if (np < next) //next player number exceeds the total number of players
-                then playerTurnHelper np ((uint32) 0) pt f
+                then playerTurnHelper np (uint32 0) pt f
             else if Set.contains next f //next player has forfeited
-                then playerTurnHelper np (next + (uint32) 1) pt f
+                then playerTurnHelper np (next + uint32 1) pt f
             else failwith "Unexpected error when finding next player."
 
     let getNextPlayerTurn (st : State.state) = 
-        playerTurnHelper st.numOfPlayers (st.playerTurn + (uint32) 1) st.playerTurn st.forfeited
+        playerTurnHelper st.numOfPlayers (st.playerTurn + uint32 1) st.playerTurn st.forfeited
     
     let updateMap oldmap message= List.fold (fun newmap (coord, brik) -> Map.add coord brik newmap) oldmap message
     
@@ -323,9 +322,9 @@ module Scrabble =
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
         
-                let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), (uint32) 1)) ms
-                let handRemoveOld = MultiSet.subtract st.hand (setListToHand playedTiles)
-                let handAddNew = MultiSet.sum handRemoveOld (setListToHand newPieces)
+                let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), uint32 1)) ms
+                let handRemoveOld = subtract st.hand (setListToHand playedTiles)
+                let handAddNew = sum handRemoveOld (setListToHand newPieces)
                 let coordMap' = (updateMap st.coordMap ms) 
                 let crossCheck' = updateCrossChecks ms coordMap' st.crossCheck st
 
@@ -369,10 +368,10 @@ module Scrabble =
                  
                 aux st'
 
-            | RCM (CMGameOver (pointList)) ->
+            | RCM (CMGameOver pointList) ->
                 for playerResults in pointList
                     do
-                        forcePrint("Player " + (fst (playerResults)).ToString() + ": " + (snd (playerResults)).ToString() + "points.\n")
+                        forcePrint("Player " + (fst playerResults).ToString() + ": " + (snd playerResults).ToString() + "points.\n")
             
             | RCM (CMForfeit(pid)) ->
                 //A player forfeits
@@ -389,7 +388,7 @@ module Scrabble =
                 //You changed your tiles
                 let st' = 
                     {st with 
-                        hand = (MultiSet.sum st.hand (setListToHand newTiles));
+                        hand = (sum st.hand (setListToHand newTiles));
                         playerTurn = getNextPlayerTurn st}
                 aux st'
 
@@ -399,7 +398,7 @@ module Scrabble =
                 let st' = {st with playerTurn = getNextPlayerTurn st}
                 aux st'
 
-            | RCM (CMTimeout (pid)) ->
+            | RCM (CMTimeout pid) ->
                 //SOme player timed out, which means they pass their turn
                 let st' = {st with playerTurn = (getNextPlayerTurn {st with playerTurn = pid})} //again, making sure that we have the right "current" player stored might be redundant.
                 aux st'
@@ -416,7 +415,7 @@ module Scrabble =
 
     let startGame 
             (boardP : boardProg) 
-            (dictf : bool -> Dictionary.Dict) 
+            (dictf : bool -> Dict) 
             (numPlayers : uint32) 
             (playerNumber : uint32) 
             (playerTurn  : uint32) 
@@ -436,7 +435,7 @@ module Scrabble =
         let dict = dictf false // Uncomment if using a trie for your dictionary
         let board = Parser.mkBoard boardP
                 
-        let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
+        let handSet = List.fold (fun acc (x, k) -> add x k acc) empty hand
 
         fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (List.empty, List.Empty) Map.empty) 
     
