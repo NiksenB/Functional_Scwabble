@@ -174,7 +174,7 @@ module Scrabble =
         match (hasNotUpNeighbor coord coordmap, hasNotUpNeighbor (getNextUpCoord coord) coordmap) with
             |(true, false) ->
                 // this is where theres emptytile both a neighboor up and down, we need to go up all the way first
-                let emptyTile = getNextUpCoord coord  l      
+                let emptyTile = getNextUpCoord coord      
                 let wordBelowAsList = goToStartOfWordBelow emptyTile List.Empty coordmap
                 let wordBelow = List.fold (fun acc (id, (ch, point)) -> acc+ch.ToString()) "" wordBelowAsList
                 let wordAbove = goToStartOfWordAbove emptyTile List.Empty coordmap
