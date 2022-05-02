@@ -174,7 +174,7 @@ module Scrabble =
         match (hasNotUpNeighbor coord coordmap, hasNotUpNeighbor (getNextUpCoord coord) coordmap) with
             |(true, false) ->
                 // this is where theres emptytile both a neighboor up and down, we need to go up all the way first
-                let emptyTile = getNextUpCoord coord        
+                let emptyTile = getNextUpCoord coord  l      
                 let wordBelowAsList = goToStartOfWordBelow emptyTile List.Empty coordmap
                 let wordBelow = List.fold (fun acc (id, (ch, point)) -> acc+ch.ToString()) "" wordBelowAsList
                 let wordAbove = goToStartOfWordAbove emptyTile List.Empty coordmap
@@ -200,11 +200,9 @@ module Scrabble =
             | _ -> crossCheckRules
     
     let crossCheckDownAndDown crossCheckRules (brik : (coord * (uint32 * (char * int)))) coordMap state =
+        //the crosscheckDownDown only needs to find if the two below are free, as the crosscheckupandup will have found any empty tile between to vertical words.
         let coord = fst brik
         match (hasNotDownNeighbor coord coordMap, hasNotDownNeighbor (getNextDownCoord coord) coordMap) with 
-            | (true, false)  ->
-                //this should be checked by the match above
-                crossCheckRules
             | (true, true) ->
               // this is where there is two free spaces below and therefore not found by the match above,
               // TODO we need to look up the word to find what it says so we can place letters
