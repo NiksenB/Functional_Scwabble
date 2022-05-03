@@ -227,7 +227,7 @@ module Scrabble =
             // todo update the state with the new rules     
     
     let rec findWord (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun =
-
+        //TODO coordfun here skal transforme coord til et step til højre, så den er nok ikke behov for den i findword men vi skal lave en til nedenunder her
         let isOccupiedRight = Map.containsKey (coordFun coord) st.coordMap
         
         if not isOccupiedRight
