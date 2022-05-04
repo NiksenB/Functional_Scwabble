@@ -349,7 +349,7 @@ module Scrabble =
             //TODO should we somehow check that st.playerTurn = st.playerNumber before trying to play?
             
             Print.printHand pieces (State.hand st)
-            let theMoveWellTryToMake : bool * list<coord * (uint32 * (char * int))> = findOneMove st pieces ((fun (x,y) -> coord (x,y)))
+            let theMoveWellTryToMake : bool * list<coord * (uint32 * (char * int))> = findOneMove st pieces
             if fst theMoveWellTryToMake
             then 
                 debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
