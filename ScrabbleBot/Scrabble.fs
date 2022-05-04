@@ -228,9 +228,9 @@ module Scrabble =
     
     let rec findWord (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun =
         //TODO coordfun here skal transforme coord til et step til højre, så den er nok ikke behov for den i findword men vi skal lave en til nedenunder her
-        let isOccupiedRight = Map.containsKey (coordFun coord) st.coordMap
+        let isOccupiedNextToMe = Map.containsKey (coordFun coord) st.coordMap
         
-        if not isOccupiedRight
+        if not isOccupiedNextToMe
         then  
             let nextDict = step ch dict
             if Option.isSome nextDict
@@ -274,13 +274,14 @@ module Scrabble =
             findWord (coord', (id', (ch', point'))) currentWord st dict' true hand pieces coordFun
 
     
-    let findOneMove (st : State.state) pieces coordFun =
+    let findOneMove (st : State.state) pieces =
+        //TODO her skal være to folds, en vi mangler en hvor vi går ned af også. 
                
         List.fold (fun acc x  -> 
             if fst acc 
             then acc
             else
-                findWord (x) (false, List.Empty) st st.dict false st.hand pieces coordFun
+                findWord (x) (false, List.Empty) st st.dict false st.hand pieces getNextRightCoord
         ) (false,List.Empty) (fst st.anchorLists) 
         
            
@@ -315,7 +316,7 @@ module Scrabble =
             //TODO should we somehow check that st.playerTurn = st.playerNumber before trying to play?
             
             Print.printHand pieces (State.hand st)
-            let theMoveWellTryToMake : bool * list<coord * (uint32 * (char * int))> = findOneMove st pieces ((fun (x,y) -> coord (x,y)))
+            let theMoveWellTryToMake : bool * list<coord * (uint32 * (char * int))> = findOneMove st pieces
             if fst theMoveWellTryToMake
             then 
                 debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
