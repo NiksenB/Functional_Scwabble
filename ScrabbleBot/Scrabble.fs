@@ -230,7 +230,6 @@ module Scrabble =
     //TODO: Mangler at tage højde for wildcard tile
     //TODO: Mangler at formattere resultatet til noget som kan spilles
     let rec findFirstWord (hand : MultiSet<uint32>) (dict : Dict) (pieces : Map<uint32, tile>) (result : 'a list) (word : string) =
-        //fold på brikkerne i hånden
         if MultiSet.isEmpty hand
         then
             result
@@ -238,33 +237,23 @@ module Scrabble =
             MultiSet.fold (fun acc id amount ->
             let tile = Map.find id pieces
             let ch = fst ((Set.toList tile)[0])  //TODO: husk at sørge for wildcard
-            
-            //nu kigger jeg på den individuelle brik i hånden
-            //jeg vil steppe og bruge den dict til at sende videre sammen med hånden - den brik vi kigger på
             let dictOption = step ch dict
             if dictOption.IsSome
             then
                 let isValidWord = fst (dictOption.Value)
                 if isValidWord
                 then
-                    let acc' = acc@[word+ch.ToString()] //lol havde glemt at appende nyeste char
-                    //skal jeg tjekke om det er valid word? ja og på en eller anden måde holde styr på ordet so far??
+                    let acc' = acc@[word+ch.ToString()] 
                     let dict' = snd (dictOption.Value)
-                
-                    //nu skal jeg folde over de resterende chars og kalde findword?
                     let amputatedHand = MultiSet.removeSingle id hand
                     findFirstWord amputatedHand dict' pieces acc' (word+ch.ToString())
                 else
-                    //skal jeg tjekke om det er valid word? ja og på en eller anden måde holde styr på ordet so far??
                     let dict' = snd (dictOption.Value)
-                
-                    //nu skal jeg folde over de resterende chars og kalde findword?
                     let amputatedHand = MultiSet.removeSingle id hand
                     findFirstWord amputatedHand dict' pieces acc (word+ch.ToString())
             else
                 acc
             ) result hand
-        
     
     let rec findWord (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun =
         //TODO coordfun here skal transforme coord til et step til højre, så den er nok ikke behov for den i findword men vi skal lave en til nedenunder her
