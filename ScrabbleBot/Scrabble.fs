@@ -226,6 +226,46 @@ module Scrabble =
 
             // todo update the state with the new rules     
     
+    
+    //TODO: Mangler at tage højde for wildcard tile
+    //TODO: Mangler at formattere resultatet til noget som kan spilles
+    let rec findFirstWord (hand : MultiSet<uint32>) (dict : Dict) (pieces : Map<uint32, tile>) (result : 'a list) (word : string) =
+        //fold på brikkerne i hånden
+        if MultiSet.isEmpty hand
+        then
+            result
+        else
+            MultiSet.fold (fun acc id amount ->
+            let tile = Map.find id pieces
+            let ch = fst ((Set.toList tile)[0])  //TODO: husk at sørge for wildcard
+            
+            //nu kigger jeg på den individuelle brik i hånden
+            //jeg vil steppe og bruge den dict til at sende videre sammen med hånden - den brik vi kigger på
+            let dictOption = step ch dict
+            if dictOption.IsSome
+            then
+                let isValidWord = fst (dictOption.Value)
+                if isValidWord
+                then
+                    let acc' = acc@[word+ch.ToString()] //lol havde glemt at appende nyeste char
+                    //skal jeg tjekke om det er valid word? ja og på en eller anden måde holde styr på ordet so far??
+                    let dict' = snd (dictOption.Value)
+                
+                    //nu skal jeg folde over de resterende chars og kalde findword?
+                    let amputatedHand = MultiSet.removeSingle id hand
+                    findFirstWord amputatedHand dict' pieces acc' (word+ch.ToString())
+                else
+                    //skal jeg tjekke om det er valid word? ja og på en eller anden måde holde styr på ordet so far??
+                    let dict' = snd (dictOption.Value)
+                
+                    //nu skal jeg folde over de resterende chars og kalde findword?
+                    let amputatedHand = MultiSet.removeSingle id hand
+                    findFirstWord amputatedHand dict' pieces acc (word+ch.ToString())
+            else
+                acc
+            ) result hand
+        
+    
     let rec findWord (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun =
         //TODO coordfun here skal transforme coord til et step til højre, så den er nok ikke behov for den i findword men vi skal lave en til nedenunder her
         let isOccupiedRight = Map.containsKey (coordFun coord) st.coordMap
@@ -311,18 +351,27 @@ module Scrabble =
             // remove the force print when you move on from manual input (or when you have learnt the format)
             //forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
             
+            
+            let words = findFirstWord st.hand st.dict pieces [] ""
+            //forcePrint("results: "+words.ToString()+"\n\n")
+            //List.fold (fun acc x -> forcePrint("Det her er et valid ord: "+x.ToString()+"\n\n")) () words
 
             //TODO should we somehow check that st.playerTurn = st.playerNumber before trying to play?
             
             Print.printHand pieces (State.hand st)
-            let theMoveWellTryToMake : bool * list<coord * (uint32 * (char * int))> = findOneMove st pieces ((fun (x,y) -> coord (x,y)))
-            if fst theMoveWellTryToMake
-            then 
-                debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
-                send cstream (SMPlay (snd theMoveWellTryToMake))
-            else send cstream (SMPass)
+            
+//            let theMoveWellTryToMake : bool * list<coord * (uint32 * (char * int))> = findOneMove st pieces ((fun (x,y) -> coord (x,y)))
+//            if fst theMoveWellTryToMake
+//            then 
+//                debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
+//                send cstream (SMPlay (snd theMoveWellTryToMake))
+//            else send cstream (SMPass)
+            forcePrint("Play this word: "+words[0].ToString()+"\n\n")
+            let input =  System.Console.ReadLine()
+            let move = RegEx.parseMove input
+            send cstream (SMPlay move)
             let msg = recv cstream
-            debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
+            //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
 
 
 
