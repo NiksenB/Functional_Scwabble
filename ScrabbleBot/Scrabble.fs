@@ -54,13 +54,13 @@ module State =
         hand          : MultiSet.MultiSet<uint32>
         coordMap      : Map<coord, uint32 * (char * int)>
         anchorLists   : List<coord * (uint32 * (char * int))> * List<coord * (uint32 * (char * int))>
-        crossCheck    : Map<coord, Set<char>>
+        crossChecks   : Map<coord, Set<char>> * Map<coord, Set<char>>
     }
     
     type coordTile = coord * (uint32 * (char *int))
 
     let mkState b d np pn pt f p h cm al cc = 
-        {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossCheck = cc }
+        {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossChecks = cc }
 
     let board st         = st.board
     let dict st          = st.dict
@@ -72,7 +72,7 @@ module State =
     let hand st          = st.hand
     let coordMap st      = st.coordMap
     let anchorLists st   = st.anchorLists
-    let crossCheck st    = st.crossCheck
+    let crossChecks st    = st.crossChecks
     
 
 
@@ -134,6 +134,7 @@ module Scrabble =
     
     let goToStartOfWordRight (x, y) coordMap =
         goFromStartOfWord (x,y) List.Empty coordMap getNexLeftCoord
+        
     let rec stepThruWord wordSoFar (dict : Option<bool * Dict>) =
         match wordSoFar with
         |[] -> dict
@@ -188,7 +189,7 @@ module Scrabble =
                 then
                     let dictFromAboveNotOption = snd dictFromWordAbove.Value
                     let validLetters = lookUpWithStringStartingAtEveryLetterOfAlphabet wordBelow dictFromAboveNotOption                    
-                    //TODO, if something already has rules for this tiles, we may need to intersect, but this however is the first rule called, so we may not need.
+                   
                     Map.add emptyTile validLetters crossCheckRules
                 else
                     Map.add  (nextNeighBorCoord coord ) Set.empty crossCheckRules
@@ -226,6 +227,7 @@ module Scrabble =
             
     let crossCheckUpAndUp crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
         crossCheckGenereicTwoBefore crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state hasNotUpNeighbor getNextUpCoord goToStartOfWordAbove goToStartOfWordBelow
+    
     let crossCheckDownAndDown crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
         crossCheckAfter crossCheckRules brik  coordMap state hasNotDownNeighbor getNextDownCoord goToStartOfWordAbove 
         
@@ -235,23 +237,24 @@ module Scrabble =
     let crossCheckRightAndRight crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
         crossCheckAfter crossCheckRules brik  coordMap state hasNotRightNeighbor getNextDownCoord goToStartOfWordAbove 
            
-    let rec updateCrossChecks (newMoves : (coord * (uint32 * (char * int))) list) coordMap (crossCheck : Map<coord, Set<char>>) state=
+    let rec updateCrossChecks (newMoves : (coord * (uint32 * (char * int))) list) coordMap crossChecks state=
         
-        List.fold (fun acc brik ->
-            // this checks if above is free and if above above is free
-            //TODO we should make two lists one for upanddown and one for leftandright
-            let newAcc = crossCheckUpAndUp acc brik coordMap  state
+        let rec runThroughNewTiles (upAndDown, leftAndRight) moves =
+            match newMoves with
+            | [] -> (upAndDown, leftAndRight)
+            | brik :: brikker ->
+                let upAndDown' = crossCheckUpAndUp upAndDown brik coordMap  state
+                // this finds the one where there is two down free
+                let upAndDownResult = crossCheckDownAndDown upAndDown' brik coordMap  state
             
-            // this finds the one where there is two down free
-            let newAcc2 = crossCheckDownAndDown newAcc brik coordMap  state
+                let leftAndRight' = crossCheckRightAndRight leftAndRight brik coordMap state
             
-            //TODO continure this trend but look for crosschecks on words that go vertical. 
-            newAcc2
+                let leftAndRightResult = crossCheckLeftAndLeft leftAndRight' brik coordMap state
             
-            ) crossCheck newMoves
-
-
-            // todo update the state with the new rules     
+                runThroughNewTiles (upAndDownResult, leftAndRightResult) brikker           
+                
+        runThroughNewTiles crossChecks newMoves
+    
     
     
     let rec findFirstWord (hand : MultiSet<uint32>) (dict : Dict) (pieces : Map<uint32, tile>) (result : bool * list<coord * (uint32 * (char * int))>) =
@@ -413,7 +416,7 @@ module Scrabble =
                 let handRemoveOld = subtract st.hand (setListToHand playedTiles)
                 let handAddNew = sum handRemoveOld (setListToHand newPieces)
                 let coordMap' = (updateMap st.coordMap ms) 
-                let crossCheck' = updateCrossChecks ms coordMap' st.crossCheck st
+                let crossChecks' = updateCrossChecks ms coordMap' st.crossChecks st
 
                 let st' =   { st with
                                 playerTurn = (getNextPlayerTurn st)
@@ -421,7 +424,7 @@ module Scrabble =
                                 hand = handAddNew
                                 coordMap = coordMap'
                                 anchorLists = updateAnchors coordMap'
-                                crossCheck = crossCheck'
+                                crossChecks = crossChecks'
                 }                                        
                 
                 forcePrint("Your hand: " + st'.hand.ToString())
@@ -438,13 +441,13 @@ module Scrabble =
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
                 let coordMap' = (updateMap st.coordMap ms)       
-                let crossCheck' = updateCrossChecks ms coordMap' st.crossCheck st    
+                let crossChecks' = updateCrossChecks ms coordMap' st.crossChecks st    
                 forcePrint("HOT DIGGIDY DAWG" + "\n\n")
                 let st' = {st with
                             playerTurn = (getNextPlayerTurn st);
                             coordMap = coordMap'
                             anchorLists = (updateAnchors coordMap')
-                            crossCheck = crossCheck'
+                            crossChecks = crossChecks'
                            } 
                 
                 aux st'
@@ -512,12 +515,12 @@ module Scrabble =
             (timeout : uint32 option) 
             (cstream : Stream) =
         debugPrint 
-            (sprintf "Starting game!
-                    number of players = %d
-                    player id = %d
-                    player turn = %d
-                    hand =  %A
-                    timeout = %A\n\n" numPlayers playerNumber playerTurn hand timeout)
+            $"Starting game!
+                    number of players = %d{numPlayers}
+                    player id = %d{playerNumber}
+                    player turn = %d{playerTurn}
+                    hand =  %A{hand}
+                    timeout = %A{timeout}\n\n"
 
         //let dict = dictf true // Uncomment if using a gaddag for your dictionary
         let dict = dictf false // Uncomment if using a trie for your dictionary
@@ -525,7 +528,7 @@ module Scrabble =
                 
         let handSet = List.fold (fun acc (x, k) -> add x k acc) empty hand
 
-        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (List.empty, List.Empty) Map.empty) 
+        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (List.empty, List.Empty) (Map.empty, Map.empty)) 
     
     
     
