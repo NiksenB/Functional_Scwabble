@@ -237,8 +237,7 @@ module Scrabble =
     let crossCheckRightAndRight crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
         crossCheckAfter crossCheckRules brik  coordMap state hasNotRightNeighbor getNextDownCoord goToStartOfWordAbove 
            
-    let rec updateCrossChecks (newMoves : (coord * (uint32 * (char * int))) list) coordMap crossChecks state=
-        
+    let rec updateCrossChecks (newMoves : (coord * (uint32 * (char * int))) list) coordMap crossChecks state=        
         let rec runThroughNewTiles (upAndDown, leftAndRight) moves =
             match newMoves with
             | [] -> (upAndDown, leftAndRight)
@@ -287,7 +286,7 @@ module Scrabble =
                 ) result tile
             ) result hand
     
-    let rec findWord (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun =
+    let rec findWord (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
         //TODO coordfun here skal transforme coord til et step til højre, så den er nok ikke behov for den i findword men vi skal lave en til nedenunder her
         let isOccupiedNextToMe = Map.containsKey (coordFun coord) st.coordMap
         
@@ -300,7 +299,7 @@ module Scrabble =
                 if isValidWord && haveAddedOwnLetter
                 then
                     (true,snd currentWord)
-                else
+                else                    
                     fold (fun acc id' amountOfElements->
                         if fst acc
                         then acc
@@ -311,20 +310,21 @@ module Scrabble =
 
                             let tile = Map.find id' pieces
                             let ch' = fst ((Set.toList tile)[0]) //denne tile kan være 1 bogstav eller 26 bogstaver
-                            //TODO tag højde for brik der kan være alle bogstaver
+                            
                             let point' = snd ((Set.toList tile)[0])
                             let coord' = coordFun coord
                             let dict' = snd nextDict.Value
                             let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
                             let newMultiSet = removeSingle id' hand 
                             
-                            findWord (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun
+                            findWord (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun crossCheck
                             
                     ) (false, List.Empty) hand
+                    
             else
                 (false, snd currentWord)
         else
-            let letter = Map.find (fst coord+1, snd coord) st.coordMap
+            let letter = Map.find (coordFun coord) st.coordMap
             let id' = (fst letter)
             let dict' = snd (step ch dict).Value
             let tile = Map.find id' pieces
@@ -332,7 +332,7 @@ module Scrabble =
             let coord' = coordFun coord
             let ch' = (fst (snd letter))
             
-            findWord (coord', (id', (ch', point'))) currentWord st dict' true hand pieces coordFun
+            findWord (coord', (id', (ch', point'))) currentWord st dict' true hand pieces coordFun crossCheck
 
     
     let findOneMove (st : State.state) pieces =
@@ -350,7 +350,7 @@ module Scrabble =
                 then
                     possiblePlay
                 else
-                    findWord (possibleBoardPiece) (false, List.Empty) st st.dict false st.hand pieces getNextRightCoord
+                    findWord (possibleBoardPiece) (false, List.Empty) st st.dict false st.hand pieces getNextRightCoord (fst st.crossChecks)
             ) (false,List.Empty) (fst st.anchorLists) 
         
            
