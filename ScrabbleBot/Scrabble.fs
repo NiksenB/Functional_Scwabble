@@ -257,37 +257,45 @@ module Scrabble =
     
     
     
-    let rec findFirstWord (hand : MultiSet<uint32>) (dict : Dict) (pieces : Map<uint32, tile>) (result : bool * list<coord * (uint32 * (char * int))>) =
-        if MultiSet.isEmpty hand || fst result
-        then result
+    let rec findFirstWord (hand : MultiSet<uint32>) (dict : Dict) (pieces : Map<uint32, tile>) (result : (int * list<coord * (uint32 * (char * int))>)) (validMoves : list<(int * list<coord * (uint32 * (char * int))>)>) =
+        if MultiSet.isEmpty hand //|| fst result
+        
+        then (result, validMoves)
+        
         else
             MultiSet.fold (fun acc id amount -> //Go through the hand
                 let tile = Map.find id pieces
                 
                 Set.fold (fun accWithChar c -> //for each possible char value a tile can have, try build word
-                    if fst accWithChar
-                    then accWithChar
-                    else 
-                        let ch = fst c
-                        let dictOption = step ch dict
-                        let currentList = snd accWithChar
-                        if dictOption.IsSome
+                    let (ch : char) = fst c
+                    let (p : int) = snd c
+                    let dictOption = step ch dict
+                    let currentListNoPoints = snd (fst accWithChar)
+                    if dictOption.IsSome
+                    then
+                        let dict' = snd (dictOption.Value)
+                        let amputatedHand = MultiSet.removeSingle id hand
+                        let (xAxisPlacement : int) = currentListNoPoints |> List.length
+                        let (newPoints : int) = p + (fst (fst accWithChar))
+                        let newList = ( newPoints, currentListNoPoints@[((0,xAxisPlacement),(id,( ch, p)))])
+                        let l = (snd newList) |> List.length
+                        let sl = l.ToString()
+                        
+                        if fst (dictOption.Value) && List.length (snd newList) >= 2
                         then
-                            let dict' = snd (dictOption.Value)
-                            let amputatedHand = MultiSet.removeSingle id hand
-                            let xAxisPlacement = snd accWithChar |> List.length
-                            let newList = currentList@[((0,xAxisPlacement),(id,c))]
-                            if fst (dictOption.Value) && List.length newList >= 2
-                            then
-                                (true, newList)
-                            else
-                                let acc' = (false, newList)
-                                findFirstWord amputatedHand dict' pieces acc'
-                        else //we're headed down a branch with no destination, skip this branch/combination
-                            result
+                            let validMoves'= validMoves@[newList]
+                            forcePrint("new valid: " + newList.ToString() + " length: " + sl + "\n")
+                            forcePrint("total valid: " + validMoves'.ToString()+"\n\n")
+                            findFirstWord amputatedHand dict' pieces newList validMoves'
+                            //(result, validMoves')
+                        else
+                            findFirstWord amputatedHand dict' pieces newList validMoves
+                    else //we're headed down a branch with no destination, skip this branch/combination
+                        //(result, validMoves)
+                        findFirstWord MultiSet.empty dict pieces (0,List.Empty) validMoves
 
-                ) acc tile
-            ) result hand
+                ) (fst acc, snd acc) tile
+            ) (result, validMoves) hand
     
     let rec findWord (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
         //TODO coordfun here skal transforme coord til et step til højre, så den er nok ikke behov for den i findword men vi skal lave en til nedenunder her
@@ -350,13 +358,26 @@ module Scrabble =
             
             findWord (coord', (id', (ch', point'))) currentWord st dict' true hand pieces coordFun crossCheck
 
-    
+
+    let findBestMove (validMoves : list<(int * list<coord * (uint32 * (char * int))>)>) =        
+        List.fold (fun acc y ->
+                if fst acc >= fst y
+                then acc
+                else y
+            ) (0, List.Empty) validMoves
+
+
     let findOneMove (st : State.state) pieces =
         if List.isEmpty (fst st.anchorLists) && List.isEmpty (snd st.anchorLists)
         then 
-            let x = findFirstWord st.hand st.dict pieces (false, List.Empty)
-            forcePrint("findFirstWord resulted in: " + x.ToString() + "\n")
-            x
+            let (_, validMoves) = findFirstWord st.hand st.dict pieces (0, List.Empty) List.Empty
+            if not validMoves.IsEmpty
+            then 
+                let bestMove = findBestMove validMoves
+                forcePrint("findFirstWord resulted in: " + bestMove.ToString() + "\n")
+                bestMove
+            else 
+                (0, List.Empty) 
         else 
             //TODO her skal være to folds, vi mangler en hvor vi går ned af også. 
             //horizontal
@@ -371,7 +392,7 @@ module Scrabble =
 
             if (fst horizontalWord)
             then 
-                horizontalWord
+                (0, snd horizontalWord)
             else 
                 let verticalWord = 
                     List.fold (fun acc anchorPoint  -> 
@@ -383,10 +404,10 @@ module Scrabble =
                     ) (false,List.Empty) (snd st.anchorLists)
                 if (fst verticalWord) 
                 then 
-                    verticalWord
+                    (0, snd verticalWord)
                 else 
                     //TODO : change briks o
-                    verticalWord
+                    (0, snd verticalWord)
 
             
         
@@ -424,12 +445,12 @@ module Scrabble =
             //TODO should we somehow check that st.playerTurn = st.playerNumber before trying to play?
             
             Print.printHand pieces (State.hand st)
-            let theMoveWellTryToMake : bool * list<coord * (uint32 * (char * int))> = findOneMove st pieces
-            if fst theMoveWellTryToMake
+            let (points, theMoveWellTryToMake) : int * list<coord * (uint32 * (char * int))> = findOneMove st pieces
+            if not theMoveWellTryToMake.IsEmpty
             then 
-                forcePrint((st.playerNumber.ToString() + " IS PLAYING THIS: " + (snd theMoveWellTryToMake).ToString()))
+                forcePrint((st.playerNumber.ToString() + " IS PLAYING THIS: " + (theMoveWellTryToMake).ToString()))
                 debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
-                send cstream (SMPlay (snd theMoveWellTryToMake))
+                send cstream (SMPlay (theMoveWellTryToMake))
             else send cstream (SMPass) //TODO : (SMChange list-of-uint)
             let msg = recv cstream
             //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
