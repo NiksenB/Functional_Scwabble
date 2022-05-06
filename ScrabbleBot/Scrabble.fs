@@ -244,7 +244,6 @@ module Scrabble =
             | brik :: brikker ->
                 forcePrint("nu løber jeg igennem brikker :))" + brik.ToString()+"\n\n")
                 let upAndDown' = crossCheckUpAndUp upAndDown brik coordMap  state
-                forcePrint("nu har jeg opned" + brik.ToString()+"\n\n")
                 // this finds the one where there is two down free
                 let upAndDownResult = crossCheckDownAndDown upAndDown' brik coordMap  state
             
@@ -277,8 +276,7 @@ module Scrabble =
                         let newList = currentList@[((0,xAxisPlacement),(id,c))]
                         if fst (dictOption.Value) && List.length currentList >= 2
                         then
-                            let acc' = (true, newList)
-                            findFirstWord amputatedHand dict' pieces acc'
+                          (true, newList)
                         else
                             let acc' = (false, newList)
                             findFirstWord amputatedHand dict' pieces acc'
@@ -353,7 +351,6 @@ module Scrabble =
     let findOneMove (st : State.state) pieces =
         if List.isEmpty (fst st.anchorLists) && List.isEmpty (snd st.anchorLists)
         then 
-            forcePrint("findFirstWord was called\n")
             let x = findFirstWord st.hand st.dict pieces (false, List.Empty)
             forcePrint("findFirstWord resulted in: " + x.ToString() + "\n")
             x
@@ -452,22 +449,34 @@ module Scrabble =
                 let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), uint32 1)) ms
                 let handRemoveOld = subtract st.hand (setListToHand playedTiles)
                 let handAddNew = sum handRemoveOld (setListToHand newPieces)
-                forcePrint("This is before update coordmap" + "\n\n")
                 let coordMap' = (updateMap st.coordMap ms) 
                 forcePrint("coordmap done" + "\n\n")
-                forcePrint("crosschecks starter" + "\n\n")
                 let crossChecks' = updateCrossChecks ms coordMap' st.crossChecks st
-                forcePrint("crosschecks done" + "\n\n")
-                forcePrint("anchor starter" + "\n\n")
-                let anchorslists'= updateAnchors coordMap'
-                forcePrint("anchor done" + "\n\n")
+                
+                forcePrint("crosschecks vertical")
+                Map.fold (fun _ key value -> forcePrint(key.ToString() + value.ToString())) () (fst crossChecks')
+                
+                forcePrint("crosschecks horizontal")
+                Map.fold (fun _ key value -> forcePrint(key.ToString() + value.ToString())) () (snd crossChecks')
+
+                let anchorLists'= updateAnchors coordMap'
+                forcePrint("anchor done" + anchorLists'.ToString() + "\n\n")
+
+                forcePrint("anchorlist vertical")
+                Map.fold (fun _ key value -> forcePrint(key.ToString() + value.ToString())) () (fst crossChecks')
+
+                forcePrint("anchorlist vertical")
+                List.fold (fun _ y -> forcePrint(y.ToString())) () (fst anchorLists')
+
+                forcePrint("anchorlist horizontal")
+                List.fold (fun _ y -> forcePrint(y.ToString())) () (snd anchorLists')
 
                 let st' =   { st with
                                 playerTurn = (getNextPlayerTurn st)
                                 points = st.points + points
                                 hand = handAddNew
                                 coordMap = coordMap'
-                                anchorLists = anchorslists'
+                                anchorLists = anchorLists'
                                 crossChecks = crossChecks'
                 }                                        
                 
