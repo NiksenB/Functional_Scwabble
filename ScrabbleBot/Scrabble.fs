@@ -333,7 +333,7 @@ module Scrabble =
                                     let newMultiSet = removeSingle id' hand 
                                 
                                     findWord (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun crossCheck
-                            ) currentWord tile  
+                            ) acc tile  
 
                     ) currentWord hand
                     
