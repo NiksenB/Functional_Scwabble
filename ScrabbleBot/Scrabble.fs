@@ -239,10 +239,12 @@ module Scrabble =
            
     let rec updateCrossChecks (newMoves : (coord * (uint32 * (char * int))) list) coordMap crossChecks state=        
         let rec runThroughNewTiles (upAndDown, leftAndRight) moves =
-            match newMoves with
+            match moves with
             | [] -> (upAndDown, leftAndRight)
             | brik :: brikker ->
+                forcePrint("nu løber jeg igennem brikker :))" + brik.ToString()+"\n\n")
                 let upAndDown' = crossCheckUpAndUp upAndDown brik coordMap  state
+                forcePrint("nu har jeg opned" + brik.ToString()+"\n\n")
                 // this finds the one where there is two down free
                 let upAndDownResult = crossCheckDownAndDown upAndDown' brik coordMap  state
             
@@ -304,22 +306,35 @@ module Scrabble =
                         if fst acc
                         then acc
                         else
-                            //find char der hører til id
-                            //kald findwordright med det char, med hand - char
-                            //TODO tag højde for crosschecks, ny liste det er intersectede med crosscheck uden for looepet
-
                             let tile = Map.find id' pieces
-                            let ch' = fst ((Set.toList tile)[0]) //denne tile kan være 1 bogstav eller 26 bogstaver
-                            
-                            let point' = snd ((Set.toList tile)[0])
-                            let coord' = coordFun coord
-                            let dict' = snd nextDict.Value
-                            let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
-                            let newMultiSet = removeSingle id' hand 
-                            
-                            findWord (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun crossCheck
-                            
-                    ) (false, List.Empty) hand
+
+                            Set.fold (fun accWithChar c -> //for each possible char value a tile can have, try build word
+                                
+                                let ch' = fst c
+                                let point' = snd c
+                                let coord' = coordFun coord
+                                // TODO this if else is ugly
+                                if Map.containsKey coord' crossCheck
+                                then 
+                                    if Set.contains ch (Map.find coord crossCheck)
+                                    then
+                                        let dict' = snd nextDict.Value
+                                        let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
+                                        let newMultiSet = removeSingle id' hand 
+                                
+                                        findWord (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun crossCheck
+                                    else
+                                        acc
+
+                                else 
+                                    let dict' = snd nextDict.Value
+                                    let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
+                                    let newMultiSet = removeSingle id' hand 
+                                
+                                    findWord (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun crossCheck
+                            ) currentWord tile  
+
+                    ) currentWord hand
                     
             else
                 (false, snd currentWord)
@@ -344,14 +359,36 @@ module Scrabble =
             x
         else 
             //TODO her skal være to folds, vi mangler en hvor vi går ned af også. 
-                
-            List.fold (fun possiblePlay possibleBoardPiece  -> 
-                if fst possiblePlay 
-                then
-                    possiblePlay
-                else
-                    findWord (possibleBoardPiece) (false, List.Empty) st st.dict false st.hand pieces getNextRightCoord (fst st.crossChecks)
-            ) (false,List.Empty) (fst st.anchorLists) 
+            //horizontal
+            let horizontalWord = 
+                List.fold (fun acc anchorPoint  -> 
+                    if fst acc 
+                    then
+                        acc
+                    else
+                        findWord (anchorPoint) (false, List.Empty) st st.dict false st.hand pieces getNextRightCoord (fst st.crossChecks) //vertical crosscheck for horizontal writing
+                ) (false,List.Empty) (fst st.anchorLists)
+
+            if (fst horizontalWord)
+            then 
+                horizontalWord
+            else 
+                let verticalWord = 
+                    List.fold (fun acc anchorPoint  -> 
+                        if fst acc 
+                        then
+                            acc
+                        else
+                            findWord (anchorPoint) (false, List.Empty) st st.dict false st.hand pieces getNextDownCoord (snd st.crossChecks) //horizontal crosscheck for vertical writing
+                    ) (false,List.Empty) (snd st.anchorLists)
+                if (fst verticalWord) 
+                then 
+                    verticalWord
+                else 
+                    //TODO : change briks o
+                    verticalWord
+
+            
         
            
     let setListToHand h = List.fold (fun acc (x, k) -> add x k acc) empty h
@@ -393,7 +430,7 @@ module Scrabble =
                 forcePrint((st.playerNumber.ToString() + " IS PLAYING THIS: " + (snd theMoveWellTryToMake).ToString()))
                 debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
                 send cstream (SMPlay (snd theMoveWellTryToMake))
-            else send cstream (SMPass)
+            else send cstream (SMPass) //TODO : (SMChange list-of-uint)
             let msg = recv cstream
             //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
 
@@ -415,15 +452,22 @@ module Scrabble =
                 let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), uint32 1)) ms
                 let handRemoveOld = subtract st.hand (setListToHand playedTiles)
                 let handAddNew = sum handRemoveOld (setListToHand newPieces)
+                forcePrint("This is before update coordmap" + "\n\n")
                 let coordMap' = (updateMap st.coordMap ms) 
+                forcePrint("coordmap done" + "\n\n")
+                forcePrint("crosschecks starter" + "\n\n")
                 let crossChecks' = updateCrossChecks ms coordMap' st.crossChecks st
+                forcePrint("crosschecks done" + "\n\n")
+                forcePrint("anchor starter" + "\n\n")
+                let anchorslists'= updateAnchors coordMap'
+                forcePrint("anchor done" + "\n\n")
 
                 let st' =   { st with
                                 playerTurn = (getNextPlayerTurn st)
                                 points = st.points + points
                                 hand = handAddNew
                                 coordMap = coordMap'
-                                anchorLists = updateAnchors coordMap'
+                                anchorLists = anchorslists'
                                 crossChecks = crossChecks'
                 }                                        
                 
@@ -440,6 +484,7 @@ module Scrabble =
 
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
+                forcePrint("HOT DIGGIDY DAWG" + "\n\n")
                 let coordMap' = (updateMap st.coordMap ms)       
                 let crossChecks' = updateCrossChecks ms coordMap' st.crossChecks st    
                 forcePrint("HOT DIGGIDY DAWG" + "\n\n")
