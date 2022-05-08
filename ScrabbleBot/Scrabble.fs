@@ -357,71 +357,71 @@ module Scrabble =
     //            ) MultiSet.empty hand
     //    else hand
     
-    let rec findWordOldAndUgly (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
-        //TODO coordfun here skal transforme coord til et step til højre, så den er nok ikke behov for den i findword men vi skal lave en til nedenunder her
-        let isOccupiedNextToMe = Map.containsKey (coordFun coord) st.coordMap
+    // let rec findWordOldAndUgly (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
+    //     //TODO coordfun here skal transforme coord til et step til højre, så den er nok ikke behov for den i findword men vi skal lave en til nedenunder her
+    //     let isOccupiedNextToMe = Map.containsKey (coordFun coord) st.coordMap
         
-        if not isOccupiedNextToMe
-        then  
-            let nextDict = step ch dict
-            if Option.isSome nextDict
-            then
-                let isValidWord = fst nextDict.Value
-                if isValidWord && haveAddedOwnLetter
-                then
-                    (true,snd currentWord)
-                else                    
-                    fold (fun acc id' amountOfElements->
-                        if fst acc
-                        then acc
-                        else
-                            let tile = Map.find id' pieces
+    //     if not isOccupiedNextToMe
+    //     then  
+    //         let nextDict = step ch dict
+    //         if Option.isSome nextDict
+    //         then
+    //             let isValidWord = fst nextDict.Value
+    //             if isValidWord && haveAddedOwnLetter
+    //             then
+    //                 (true,snd currentWord)
+    //             else                    
+    //                 fold (fun acc id' amountOfElements->
+    //                     if fst acc
+    //                     then acc
+    //                     else
+    //                         let tile = Map.find id' pieces
                             
 
-                            Set.fold (fun accWithChar c -> //for each possible char value a tile can have, try build word
-                                let ch' = fst c
-                                let point' = snd c
-                                let coord' = coordFun coord
-                                // TODO this if else is ugly
-                                if Map.containsKey coord' crossCheck
-                                then
-                                    forcePrint("print good when coord is (1,1) " + coord'.ToString())
-                                    forcePrint("crosscheckMap for right coord after E : "  + (Map.find coord' crossCheck).ToString() )
+    //                         Set.fold (fun accWithChar c -> //for each possible char value a tile can have, try build word
+    //                             let ch' = fst c
+    //                             let point' = snd c
+    //                             let coord' = coordFun coord
+    //                             // TODO this if else is ugly
+    //                             if Map.containsKey coord' crossCheck
+    //                             then
+    //                                 forcePrint("print good when coord is (1,1) " + coord'.ToString())
+    //                                 forcePrint("crosscheckMap for right coord after E : "  + (Map.find coord' crossCheck).ToString() )
 
-                                    if Set.contains ch' (Map.find coord crossCheck)
-                                    then
-                                        let dict' = snd nextDict.Value
-                                        let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
-                                        let newMultiSet = removeSingle id' hand 
+    //                                 if Set.contains ch' (Map.find coord crossCheck)
+    //                                 then
+    //                                     let dict' = snd nextDict.Value
+    //                                     let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
+    //                                     let newMultiSet = removeSingle id' hand 
                                 
-                                        findWordOldAndUgly (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun crossCheck
-                                    else
-                                        acc
+    //                                     findWordOldAndUgly (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun crossCheck
+    //                                 else
+    //                                     acc
 
-                                else
-                                    let dict' = snd nextDict.Value
-                                    let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
-                                    let newMultiSet = removeSingle id' hand 
+    //                             else
+    //                                 let dict' = snd nextDict.Value
+    //                                 let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
+    //                                 let newMultiSet = removeSingle id' hand 
                                 
-                                    findWordOldAndUgly (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun crossCheck
-                            ) acc tile  
+    //                                 findWordOldAndUgly (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun crossCheck
+    //                         ) acc tile  
 
-                    ) currentWord hand
+    //                 ) currentWord hand
                     
-            else
-                (false, snd currentWord)
-        else
-            let letter = Map.find (coordFun coord) st.coordMap
-            let id' = (fst letter)
-            let dict' = snd (step ch dict).Value
-            let tile = Map.find id' pieces
-            let point' = snd (snd letter)
-            let coord' = coordFun coord
-            let ch' = (fst (snd letter))
+    //         else
+    //             (false, snd currentWord)
+    //     else
+    //         let letter = Map.find (coordFun coord) st.coordMap
+    //         let id' = (fst letter)
+    //         let dict' = snd (step ch dict).Value
+    //         let tile = Map.find id' pieces
+    //         let point' = snd (snd letter)
+    //         let coord' = coordFun coord
+    //         let ch' = (fst (snd letter))
             
-            findWordOldAndUgly (coord', (id', (ch', point'))) currentWord st dict' haveAddedOwnLetter hand pieces coordFun crossCheck
+    //         findWordOldAndUgly (coord', (id', (ch', point'))) currentWord st dict' haveAddedOwnLetter hand pieces coordFun crossCheck
 
-    let rec findWord coord (finishedWords : ((coord * (uint32 * (char * int))) list) list ) (currentWord : ((coord * (uint32 * (char * int))) list)) (st : State.state) (dict : Dict) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
+    let rec findWord coord (finishedWords : ((coord * (uint32 * (char * int))) list) list ) (currentAddedTiles : ((coord * (uint32 * (char * int))) list)) (st : State.state) (dict : Dict) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
         //TODO coordfun here skal transforme coord til et step til højre, så den er nok ikke behov for den i findword men vi skal lave en til nedenunder her
         let isCoordOccupied = Map.containsKey coord st.coordMap
         
@@ -429,7 +429,7 @@ module Scrabble =
         then
             if isEmpty hand
             then
-                (finishedWords, currentWord)
+                (finishedWords, currentAddedTiles)
             else
                 fold (fun (f, s) id _ ->
                     let tile = Map.find id pieces
@@ -474,7 +474,7 @@ module Scrabble =
                             else
                                 (f,s)
                         ) (f,s) tile
-                ) (finishedWords, currentWord) hand
+                ) (finishedWords, currentAddedTiles) hand
         else
             //der er optaget på denne plads, lad os steppe hvor vi er
             let (_,(ch,_)) = Map.find coord st.coordMap 
@@ -483,18 +483,18 @@ module Scrabble =
             then
                 if fst dOption.Value
                 then
-                    if not (List.isEmpty currentWord)
+                    if not (List.isEmpty currentAddedTiles)
                     then
-                        let finishedWords' = finishedWords@[currentWord]
-                        findWord (coordFun coord) finishedWords' currentWord st (snd dOption.Value) hand pieces coordFun crossCheck
+                        let finishedWords' = finishedWords@[currentAddedTiles]
+                        findWord (coordFun coord) finishedWords' currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
                     else     
-                        findWord (coordFun coord) finishedWords currentWord st (snd dOption.Value) hand pieces coordFun crossCheck
+                        findWord (coordFun coord) finishedWords currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
                 else
-                      findWord (coordFun coord) finishedWords currentWord st (snd dOption.Value) hand pieces coordFun crossCheck
+                      findWord (coordFun coord) finishedWords currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
 
             else
-                forcePrint ("\nI hit a dead end on " + currentWord.ToString() + "\n")
-                (finishedWords, currentWord)
+                forcePrint ("\nI hit a dead end on " + currentAddedTiles.ToString() + "\n")
+                (finishedWords, currentAddedTiles)
 
     
     
@@ -507,7 +507,7 @@ module Scrabble =
         else 
             //TODO her skal være to folds, vi mangler en hvor vi går ned af også. 
             //horizontal
-            let horizontalWord = 
+            let horizontalWords = 
                 List.fold (fun acc (anchorPoint,(b,(c,p)))  ->
                    if List.isEmpty acc
                    then
@@ -518,12 +518,12 @@ module Scrabble =
                        acc
                 ) List.Empty st.anchorLists.anchorsForHorizontalWords
 
-            if (not (List.isEmpty horizontalWord))
+            if (not (List.isEmpty horizontalWords))
             then
-                forcePrint ("im gonna play this one horizontally :) " + horizontalWord.ToString())
-                horizontalWord[0]
+                forcePrint ("Im gonna play this one horizontally :) " + (horizontalWords[0]).ToString())
+                horizontalWords[0]
             else 
-                let verticalWord = 
+                let verticalWords = 
                     List.fold (fun acc (anchorPoint,(b,(c,p)))  -> 
                         if List.isEmpty acc 
                         then
@@ -532,14 +532,14 @@ module Scrabble =
                         else
                             acc
                     ) List.Empty st.anchorLists.anchorsForVerticalWords
-                if (not (List.isEmpty verticalWord))
+                if (not (List.isEmpty verticalWords[0]))
                 then
-                    forcePrint ("im gonna play this one vertically :) " + verticalWord.ToString())
-                    verticalWord[0]
+                    forcePrint ("im gonna play this one vertically :) " + (verticalWords[0]).ToString())
+                    verticalWords[0]
                 else 
                     //TODO : change briks o
                     forcePrint "make it clap - i find no word im bad :("
-                    verticalWord[0]
+                    verticalWords[0]
 
             
         
