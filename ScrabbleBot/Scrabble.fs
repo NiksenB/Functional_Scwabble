@@ -108,6 +108,7 @@ module Scrabble =
         not (Map.containsKey (getNexLeftCoord coord) coordMap)
     
     let hasNotUpNeighbor coord coordMap =
+        
         not (Map.containsKey (getNextUpCoord coord) coordMap)
     
     let hasNotDownNeighbor coord coordMap =
@@ -181,7 +182,6 @@ module Scrabble =
             let chars = alphabet.ToCharArray() |> List.ofArray
             let validLetters =
                 List.fold (fun acc char ->
-                forcePrint("Im in line 154 trying to test endings of words")
                 let dict' = step char dict
                 if dict'.IsSome
                 then                
@@ -192,6 +192,7 @@ module Scrabble =
             Set.ofList validLetters 
     
     let crossCheckGenereicTwoBefore (crossCheckRules : Map<coord, Set<char>>) brik (coordMap : Map<coord, uint32 * (char * int)>) (state : State.state) checkNeighborIsFree nextNeighBorCoord goToStartOfWordBefore goToStartOfWordAfter=
+        forcePrint ("\n\ncrossCheckGenereicTwoBefore is called for brik: " + brik.ToString())
         let coord = fst brik
         //Before this check coordmap has been updated with the new moves as well, very important this is done.
         let exactlyOneFreeAbove = (true, false)
@@ -199,6 +200,10 @@ module Scrabble =
         
         match (checkNeighborIsFree coord coordMap, checkNeighborIsFree (nextNeighBorCoord coord) coordMap) with //getNexTUpCord, Hasupneightbor
             |true, false ->
+                forcePrint("\n\ntrue, false")
+
+                forcePrint("\n\ncheckNeighborIsFree returns true on coord: " + (nextNeighBorCoord coord).ToString() + " and false on coord :" + (nextNeighBorCoord(nextNeighBorCoord coord)).ToString() )
+                
                 // this is where theres emptytile both a neighboor up and down, we need to go up all the way first
                 let emptyTile = nextNeighBorCoord coord      
                 let wordBelowAsList = goToStartOfWordAfter emptyTile coordMap // goToStartOfWordBelow!
@@ -215,6 +220,10 @@ module Scrabble =
                     Map.add  (nextNeighBorCoord coord ) Set.empty crossCheckRules
                 
             |true, true ->
+                forcePrint("\n\ntrue, true")
+
+                forcePrint("\n\ncheckNeighborIsFree returns true on coord: " + (nextNeighBorCoord coord).ToString() + " and true on coord :" + (nextNeighBorCoord(nextNeighBorCoord coord)).ToString() )
+
                 //No upstairs word, we only need to looks down
                 let emptyTile = nextNeighBorCoord coord
                 let wordBelowAsList = goToStartOfWordAfter emptyTile coordMap
@@ -227,8 +236,12 @@ module Scrabble =
     let crossCheckAfter (crossCheckRules : Map<coord, Set<char>>) brik (coordMap : Map<coord, uint32 * (char * int)>) (state : State.state) checkNeighborIsFree nextNeighborCoord goToStartOfWordBefore=
         //the crosscheckDownDown only needs to find if the two below are free, as the crosscheckupandup will have found any empty tile between to vertical words.
         let coord = fst brik
+    
+        forcePrint ("\n\ncrossCheckAfter is called for brik: " + brik.ToString())
+
         match (checkNeighborIsFree coord coordMap, checkNeighborIsFree (nextNeighborCoord coord) coordMap) with 
             | true, true ->
+              forcePrint("\n\ncheckNeighborIsFree returns true on coord: " + (nextNeighborCoord coord).ToString() + " and true on coord :" + (nextNeighborCoord(nextNeighborCoord coord)).ToString() )
               // this is where there is two free spaces below and therefore not found by the match above,
               let emptyTile = nextNeighborCoord coord 
               let wordAbove = goToStartOfWordBefore emptyTile coordMap // goToStartOfWordAbove
@@ -263,15 +276,23 @@ module Scrabble =
             match moves with
             | [] -> (upAndDown, leftAndRight)
             | brik :: brikker ->
-                forcePrint("nu løber jeg igennem brikker :))" + brik.ToString()+"\n\n")
+                forcePrint "\n\nJeg kigger oven over mig nu!"
                 let upAndDown' = crossCheckUpAndUp upAndDown brik coordMap  st
+                forcePrint ("\n\nupAndDown' for letter" + brik.ToString() + "is: " + upAndDown'.ToString())
                 // this finds the one where there is two down free
+                forcePrint "\n\nJeg kigger neden under mig nu!"
                 let upAndDownResult = crossCheckDownAndDown upAndDown' brik coordMap  st
-            
+                forcePrint ("\n\nupAndDownResult for letter" + brik.ToString() + "is: " + upAndDownResult.ToString())
+                
+                forcePrint "\n\nJeg kigger til venstre for mig nu!"
                 let leftAndRight' = crossCheckRightAndRight leftAndRight brik coordMap st
-            
+                forcePrint ("\n\nleftandRight' for letter" + brik.ToString() + "is: " + leftAndRight.ToString())
+
+                forcePrint "\n\nJeg kigger til højre for mig nu!"
                 let leftAndRightResult = crossCheckLeftAndLeft leftAndRight' brik coordMap st
-            
+                forcePrint ("\n\nleftAndRightResult for letter" + brik.ToString() + "is: " + leftAndRightResult.ToString())
+                
+                forcePrint ("\n\nWe now call runThroughNewTiles again using upAndDownResult and leftAndRightResult")
                 runThroughNewTiles (upAndDownResult, leftAndRightResult) brikker           
                 
         let (upAndDown, leftAndRight) = runThroughNewTiles (st.crossChecks.checkForHorizontalWords, st.crossChecks.checkForVerticalWords) newMoves
@@ -476,13 +497,13 @@ module Scrabble =
                 let handRemoveOld = subtract st.hand (setListToHand playedTiles)
                 let handAddNew = sum handRemoveOld (setListToHand newPieces)
                 let coordMap' = (updateMap st.coordMap ms) 
-                forcePrint("coordmap done" + "\n\n")
+                forcePrint "\n\ncoordmap done"
                 let crossChecks' = updateCrossChecks ms coordMap' st
                 
-                forcePrint("crosschecks vertical words")
+                forcePrint "\n\ncrosschecks vertical words"
                 Map.fold (fun _ key value -> forcePrint(key.ToString() + value.ToString())) () crossChecks'.checkForVerticalWords
                 
-                forcePrint("crosschecks horizontal words")
+                forcePrint "\n\ncrosschecks horizontal words"
                 Map.fold (fun _ key value -> forcePrint(key.ToString() + value.ToString())) () crossChecks'.checkForHorizontalWords
 
                 let anchorLists' = updateAnchors coordMap'
@@ -490,10 +511,10 @@ module Scrabble =
                 
                 forcePrint("anchor done" + anchorLists'.ToString() + "\n\n")
 
-                forcePrint("anchorlist vertical")
+                forcePrint "\n\nanchorlist vertical"
                 List.fold (fun _ y -> forcePrint(y.ToString())) () anchorLists'.anchorsForVerticalWords
 
-                forcePrint("anchorlist horizontal")
+                forcePrint "\n\nanchorlist horizontal"
                 List.fold (fun _ y -> forcePrint(y.ToString())) () anchorLists'.anchorsForHorizontalWords
 
                 let st' =   { st with
@@ -505,12 +526,12 @@ module Scrabble =
                                 crossChecks = crossChecks'
                 }                                        
                 
-                forcePrint("Your hand: " + st'.hand.ToString())
+                forcePrint("\n\nYour hand: " + st'.hand.ToString())
                 //forcePrint("The board: " + st'.coordMap.ToString())
                 //forcePrint("Your player number: " + st'.playerNumber.ToString() + "\n\n")
                 //forcePrint("Your state: " + st'.ToString() + "\n\n")
                 //forcePrint("Next player: " + st'.playerTurn.ToString() + "\n\n")
-                forcePrint("Your points: " + st'.points.ToString() + "\n\n")
+                forcePrint("\nYour points: " + st'.points.ToString() + "\n\n")
                 //forcePrint("Crosscreck: " + st'.crossCheck.ToString() + "\n\n")
                 forcePrint(" ----- ----- ----- ----- -----")
                 
