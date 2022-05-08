@@ -358,7 +358,6 @@ module Scrabble =
 
                             Set.fold (fun accWithChar c -> //for each possible char value a tile can have, try build word
                                 let ch' = fst c
-                                forcePrint("\n\n THIS SHOUlD BE E : " + ch'.ToString())
                                 let point' = snd c
                                 let coord' = coordFun coord
                                 // TODO this if else is ugly
@@ -367,7 +366,7 @@ module Scrabble =
                                     forcePrint("print good when coord is (1,1) " + coord'.ToString())
                                     forcePrint("crosscheckMap for right coord after E : "  + (Map.find coord' crossCheck).ToString() )
 
-                                    if Set.contains ch (Map.find coord crossCheck)
+                                    if Set.contains ch' (Map.find coord crossCheck)
                                     then
                                         let dict' = snd nextDict.Value
                                         let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
@@ -377,7 +376,7 @@ module Scrabble =
                                     else
                                         acc
 
-                                else 
+                                else
                                     let dict' = snd nextDict.Value
                                     let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
                                     let newMultiSet = removeSingle id' hand 
@@ -398,7 +397,7 @@ module Scrabble =
             let coord' = coordFun coord
             let ch' = (fst (snd letter))
             
-            findWord (coord', (id', (ch', point'))) currentWord st dict' true hand pieces coordFun crossCheck
+            findWord (coord', (id', (ch', point'))) currentWord st dict' haveAddedOwnLetter hand pieces coordFun crossCheck
 
     
     let findOneMove (st : State.state) pieces =
@@ -420,7 +419,8 @@ module Scrabble =
                 ) (false,List.Empty)  st.anchorLists.anchorsForHorizontalWords
 
             if (fst horizontalWord)
-            then 
+            then
+                forcePrint ("im gonna play this one horizontally :) " + horizontalWord.ToString())
                 horizontalWord
             else 
                 let verticalWord = 
@@ -432,10 +432,12 @@ module Scrabble =
                             findWord (anchorPoint) (false, List.Empty) st st.dict false st.hand pieces getNextDownCoord st.crossChecks.checkForVerticalWords 
                     ) (false,List.Empty)  st.anchorLists.anchorsForVerticalWords
                 if (fst verticalWord) 
-                then 
+                then
+                    forcePrint ("im gonna play this one vertically :) " + verticalWord.ToString())
                     verticalWord
                 else 
                     //TODO : change briks o
+                    forcePrint "make it clap - i find no word im bad :("
                     verticalWord
 
             
@@ -602,7 +604,10 @@ module Scrabble =
             //TODO Handle a few of the different Gameplay errors? (see Scrabble.pdf)
             | RGPE err -> printfn "Gameplay Error:\n%A" err; aux st
     
-    
+//        let farmand = step ' ' st.dict
+//        let mor = farmand.Value
+//        forcePrint("mor")
+        
         aux st
 
 
