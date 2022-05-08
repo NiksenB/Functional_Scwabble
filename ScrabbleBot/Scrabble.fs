@@ -288,25 +288,28 @@ module Scrabble =
                 let tile = Map.find id pieces
                 
                 Set.fold (fun accWithChar c -> //for each possible char value a tile can have, try build word
-                    let ch = fst c
-                    let dictOption = step ch dict
-                    let currentList = snd accWithChar
-                    if dictOption.IsSome
-                    then
-                        let dict' = snd (dictOption.Value)
-                        let amputatedHand = MultiSet.removeSingle id hand
-                        let xAxisPlacement = snd accWithChar |> List.length
-                        let newList = currentList@[((0,xAxisPlacement),(id,c))]
-                        if fst (dictOption.Value) && List.length currentList >= 2
+                    if fst accWithChar
+                    then accWithChar
+                    else 
+                        let ch = fst c
+                        let dictOption = step ch dict
+                        let currentList = snd accWithChar
+                        if dictOption.IsSome
                         then
-                          (true, newList)
-                        else
-                            let acc' = (false, newList)
-                            findFirstWord amputatedHand dict' pieces acc'
-                    else
-                        acc
+                            let dict' = snd (dictOption.Value)
+                            let amputatedHand = MultiSet.removeSingle id hand
+                            let xAxisPlacement = snd accWithChar |> List.length
+                            let newList = currentList@[((0,xAxisPlacement),(id,c))]
+                            if fst (dictOption.Value) && List.length newList >= 2
+                            then
+                                (true, newList)
+                            else
+                                let acc' = (false, newList)
+                                findFirstWord amputatedHand dict' pieces acc'
+                        else //we're headed down a branch with no destination, skip this branch/combination
+                            result
 
-                ) result tile
+                ) acc tile
             ) result hand
     
     let rec findWord (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
@@ -353,7 +356,7 @@ module Scrabble =
                                     let newMultiSet = removeSingle id' hand 
                                 
                                     findWord (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun crossCheck
-                            ) currentWord tile  
+                            ) acc tile  
 
                     ) currentWord hand
                     
