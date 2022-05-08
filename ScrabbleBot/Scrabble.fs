@@ -190,8 +190,10 @@ module Scrabble =
                 ) [] chars
             Set.ofList validLetters 
     
-    let crossCheckGenereicTwoBefore (crossCheckRules : Map<coord, Set<char>>) brik (coordMap : Map<coord, uint32 * (char * int)>) (state : State.state) checkNeighborIsFree nextNeighBorCoord goToStartOfWordBefore goToStartOfWordAfter=
-        forcePrint ("\n\ncrossCheckGenereicTwoBefore is called for brik: " + brik.ToString())
+    let crossCheckGenericTwoBefore
+     (crossCheckRules : Map<coord, Set<char>>) brik (coordMap : Map<coord, uint32 * (char * int)>) (state : State.state) checkNeighborIsFree nextNeighBorCoord goToStartOfWordBefore goToStartOfWordAfter=
+        forcePrint ("\n\ncrossCheckGenericTwoBefore
+         is called for brik: " + brik.ToString())
         let coord = fst brik
         //Before this check coordmap has been updated with the new moves as well, very important this is done.
         let exactlyOneFreeAbove = (true, false)
@@ -228,21 +230,21 @@ module Scrabble =
                 let wordBelowAsList = goToStartOfWordAfter emptyTile coordMap
                 
                 let wordBelow = List.fold (fun acc (_, (ch, _)) -> ch.ToString()+acc) "" wordBelowAsList
-                forcePrint("after left and left this should be A : " + wordBelow.ToString())
+                //forcePrint("after left and left this should be A : " + wordBelow.ToString())
                 let validLetters = lookUpWithStringStartingAtEveryLetterOfAlphabet wordBelow state.dict                    
                 Map.add emptyTile validLetters crossCheckRules
                 
             | _ -> crossCheckRules
     
-    let crossCheckAfter (crossCheckRules : Map<coord, Set<char>>) brik (coordMap : Map<coord, uint32 * (char * int)>) (state : State.state) checkNeighborIsFree nextNeighborCoord goToStartOfWordBefore=
+    let crossCheckAfter (crossCheckRules : Map<coord, Set<char>>) brik (coordMap : Map<coord, uint32 * (char * int)>) (state : State.state) isNeighborFree nextNeighborCoord goToStartOfWordBefore=
         //the crosscheckDownDown only needs to find if the two below are free, as the crosscheckupandup will have found any empty tile between to vertical words.
         let coord = fst brik
     
         forcePrint ("\n\ncrossCheckAfter is called for brik: " + brik.ToString())
 
-        match (checkNeighborIsFree coord coordMap, checkNeighborIsFree (nextNeighborCoord coord) coordMap) with 
+        match (isNeighborFree coord coordMap, isNeighborFree (nextNeighborCoord coord) coordMap) with 
             | true, true ->
-              forcePrint("\n\ncheckNeighborIsFree returns true on coord: " + (nextNeighborCoord coord).ToString() + " and true on coord :" + (nextNeighborCoord(nextNeighborCoord coord)).ToString() )
+              forcePrint("\n\nisNeighborFree returns true on coord: " + (nextNeighborCoord coord).ToString() + " and true on coord :" + (nextNeighborCoord(nextNeighborCoord coord)).ToString() )
               // this is where there is two free spaces below and therefore not found by the match above,
               let emptyTile = nextNeighborCoord coord 
               let wordAbove = goToStartOfWordBefore emptyTile coordMap
@@ -260,12 +262,14 @@ module Scrabble =
             | _ -> crossCheckRules
             
     let crossCheckUpAndUp crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
-        crossCheckGenereicTwoBefore crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state hasNotUpNeighbor getNextUpCoord goToStartOfWordAbove goToStartOfWordBelow
+        crossCheckGenericTwoBefore
+         crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state hasNotUpNeighbor getNextUpCoord goToStartOfWordAbove goToStartOfWordBelow
     
     let crossCheckDownAndDown crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
         crossCheckAfter crossCheckRules brik  coordMap state hasNotDownNeighbor getNextDownCoord goToStartOfWordAbove        
     let crossCheckLeftAndLeft crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
-        crossCheckGenereicTwoBefore crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state hasNotLeftNeighbor getNexLeftCoord goToStartOfWordLeft goToStartOfWordRight
+        crossCheckGenericTwoBefore
+         crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state hasNotLeftNeighbor getNexLeftCoord goToStartOfWordLeft goToStartOfWordRight
     
     let crossCheckRightAndRight crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
         crossCheckAfter crossCheckRules brik  coordMap state hasNotRightNeighbor getNextRightCoord goToStartOfWordLeft 
@@ -279,21 +283,19 @@ module Scrabble =
             | brik :: brikker ->
                 forcePrint "\n\nJeg kigger oven over mig nu!"
                 let upAndDown' = crossCheckUpAndUp upAndDown brik coordMap  st
-                forcePrint ("\n\nupAndDown' for letter" + brik.ToString() + "is: " + upAndDown'.ToString())
+                forcePrint ("\nupAndDown' for letter " + brik.ToString() + " is: " + upAndDown'.ToString())
                 // this finds the one where there is two down free
                 forcePrint "\n\nJeg kigger neden under mig nu!"
                 let upAndDownResult = crossCheckDownAndDown upAndDown' brik coordMap  st
-                forcePrint ("\n\nupAndDownResult for letter" + brik.ToString() + "is: " + upAndDownResult.ToString())
+                forcePrint ("\nupAndDownResult for letter " + brik.ToString() + " is: " + upAndDownResult.ToString())
                 
                 forcePrint "\n\nJeg kigger til venstre for mig nu!"
                 let leftAndRight' = crossCheckLeftAndLeft leftAndRight brik coordMap st
-                forcePrint ("\n\nleftAndRightResult for letter" + brik.ToString() + "is: " + leftAndRight'.ToString())
+                forcePrint ("\nleftAndRight' for letter " + brik.ToString() + " is: " + leftAndRight'.ToString())
                 
                 forcePrint "\n\nJeg kigger til højre for mig nu!"
                 let leftAndRightResult = crossCheckRightAndRight leftAndRight' brik coordMap st
-                forcePrint ("\n\leftAndRightResult' for letter" + brik.ToString() + "is: " + leftAndRight.ToString())
-
-                
+                forcePrint ("\nleftAndRightResult' for letter " + brik.ToString() + " is: " + leftAndRightResult.ToString())
                 
                 //forcePrint ("\n\nWe now call runThroughNewTiles again using upAndDownResult and leftAndRightResult")
                 runThroughNewTiles (upAndDownResult, leftAndRightResult) brikker           
