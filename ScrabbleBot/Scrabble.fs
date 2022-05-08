@@ -93,7 +93,8 @@ module State =
 
 
 module Scrabble =
-    open System.Threading 
+    open System.Threading
+    let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     let getNextUpCoord (coord : coord) =
         (fst coord, snd coord - 1)
     
@@ -152,7 +153,7 @@ module Scrabble =
         goToStartOfWord (x,y) List.Empty coordMap getNexLeftCoord
     
     let goToStartOfWordRight (x, y) coordMap =
-        goFromStartOfWord (x,y) List.Empty coordMap getNexLeftCoord
+        goFromStartOfWord (x,y) List.Empty coordMap getNextRightCoord
         
     let rec stepThruWord wordSoFar (dict : Option<bool * Dict>) =
         match wordSoFar with
@@ -161,8 +162,7 @@ module Scrabble =
             let dict' = step ch (snd dict.Value)
             stepThruWord wordSoFar dict'
     
-    let lookUpWithStringStartingAtEveryLetterOfAlphabet word dict =
-        let alphabet = "abcdefghijklmnopqrstuvwxyz"
+    let lookUpWithStringStartingAtEveryLetterOfAlphabet word dict =        
         let chars = alphabet.ToCharArray() |> List.ofArray
         let validLetters =
             List.fold (fun acc char ->
@@ -170,8 +170,7 @@ module Scrabble =
             if dict'.IsSome
             then                
                 let wordExists = lookup word (snd dict'.Value)
-                
-                
+                                
                 if wordExists then acc @ [char] else acc
             else
                 acc
@@ -179,7 +178,6 @@ module Scrabble =
         Set.ofList validLetters
         
     let PossibleEndingsToWordWithEveryLetterOfAlphabet dict =
-            let alphabet = "abcdefghijklmnopqrstuvwxyz"
             let chars = alphabet.ToCharArray() |> List.ofArray
             let validLetters =
                 List.fold (fun acc char ->
@@ -208,7 +206,7 @@ module Scrabble =
                 // this is where theres emptytile both a neighboor up and down, we need to go up all the way first
                 let emptyTile = nextNeighBorCoord coord      
                 let wordBelowAsList = goToStartOfWordAfter emptyTile coordMap // goToStartOfWordBelow!
-                let wordBelow = List.fold (fun acc (_, (ch, _)) -> acc+ch.ToString()) "" wordBelowAsList
+                let wordBelow = List.fold (fun acc (_, (ch, _)) -> ch.ToString()+acc) "" wordBelowAsList
                 let wordAbove = goToStartOfWordBefore emptyTile coordMap // goToStartOfWordAbove
                 let dictFromWordAbove = stepThruWord wordAbove (Option.Some (false, state.dict))
                 if dictFromWordAbove.IsSome 
@@ -228,7 +226,9 @@ module Scrabble =
                 //No upstairs word, we only need to looks down
                 let emptyTile = nextNeighBorCoord coord
                 let wordBelowAsList = goToStartOfWordAfter emptyTile coordMap
-                let wordBelow = List.fold (fun acc (_, (ch, _)) -> acc+ch.ToString()) "" wordBelowAsList
+                
+                let wordBelow = List.fold (fun acc (_, (ch, _)) -> ch.ToString()+acc) "" wordBelowAsList
+                forcePrint("after left and left this should be A : " + wordBelow.ToString())
                 let validLetters = lookUpWithStringStartingAtEveryLetterOfAlphabet wordBelow state.dict                    
                 Map.add emptyTile validLetters crossCheckRules
                 
@@ -245,14 +245,15 @@ module Scrabble =
               forcePrint("\n\ncheckNeighborIsFree returns true on coord: " + (nextNeighborCoord coord).ToString() + " and true on coord :" + (nextNeighborCoord(nextNeighborCoord coord)).ToString() )
               // this is where there is two free spaces below and therefore not found by the match above,
               let emptyTile = nextNeighborCoord coord 
-              let wordAbove = goToStartOfWordBefore emptyTile coordMap // goToStartOfWordAbove
+              let wordAbove = goToStartOfWordBefore emptyTile coordMap
+              
               let dictFromWordAbove = stepThruWord wordAbove (Option.Some (false, state.dict))
               
               if dictFromWordAbove.IsSome
               then
+                    
                     let dictFromAboveNotOption = snd dictFromWordAbove.Value
-                    let validLetters = PossibleEndingsToWordWithEveryLetterOfAlphabet dictFromAboveNotOption                    
-                    //TODO, if something already has rules for this tiles, we may need to intersect
+                    let validLetters = PossibleEndingsToWordWithEveryLetterOfAlphabet dictFromAboveNotOption
                     Map.add emptyTile validLetters crossCheckRules
               else
                     Map.add  emptyTile Set.empty crossCheckRules
@@ -262,13 +263,12 @@ module Scrabble =
         crossCheckGenereicTwoBefore crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state hasNotUpNeighbor getNextUpCoord goToStartOfWordAbove goToStartOfWordBelow
     
     let crossCheckDownAndDown crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
-        crossCheckAfter crossCheckRules brik  coordMap state hasNotDownNeighbor getNextDownCoord goToStartOfWordAbove 
-        
+        crossCheckAfter crossCheckRules brik  coordMap state hasNotDownNeighbor getNextDownCoord goToStartOfWordAbove        
     let crossCheckLeftAndLeft crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
         crossCheckGenereicTwoBefore crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state hasNotLeftNeighbor getNexLeftCoord goToStartOfWordLeft goToStartOfWordRight
     
     let crossCheckRightAndRight crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
-        crossCheckAfter crossCheckRules brik  coordMap state hasNotRightNeighbor getNextDownCoord goToStartOfWordAbove 
+        crossCheckAfter crossCheckRules brik  coordMap state hasNotRightNeighbor getNextRightCoord goToStartOfWordLeft 
            
     let rec updateCrossChecks (newMoves : (coord * (uint32 * (char * int))) list) coordMap (st : State.state)=
         
@@ -286,14 +286,16 @@ module Scrabble =
                 forcePrint ("\n\nupAndDownResult for letter" + brik.ToString() + "is: " + upAndDownResult.ToString())
                 
                 forcePrint "\n\nJeg kigger til venstre for mig nu!"
-                let leftAndRight' = crossCheckRightAndRight leftAndRight brik coordMap st
-                forcePrint ("\n\nleftandRight' for letter" + brik.ToString() + "is: " + leftAndRight.ToString())
-
-                forcePrint "\n\nJeg kigger til højre for mig nu!"
-                let leftAndRightResult = crossCheckLeftAndLeft leftAndRight' brik coordMap st
-                forcePrint ("\n\nleftAndRightResult for letter" + brik.ToString() + "is: " + leftAndRightResult.ToString())
+                let leftAndRight' = crossCheckLeftAndLeft leftAndRight brik coordMap st
+                forcePrint ("\n\nleftAndRightResult for letter" + brik.ToString() + "is: " + leftAndRight'.ToString())
                 
-                forcePrint ("\n\nWe now call runThroughNewTiles again using upAndDownResult and leftAndRightResult")
+                forcePrint "\n\nJeg kigger til højre for mig nu!"
+                let leftAndRightResult = crossCheckRightAndRight leftAndRight' brik coordMap st
+                forcePrint ("\n\leftAndRightResult' for letter" + brik.ToString() + "is: " + leftAndRight.ToString())
+
+                
+                
+                //forcePrint ("\n\nWe now call runThroughNewTiles again using upAndDownResult and leftAndRightResult")
                 runThroughNewTiles (upAndDownResult, leftAndRightResult) brikker           
                 
         let (upAndDown, leftAndRight) = runThroughNewTiles (st.crossChecks.checkForHorizontalWords, st.crossChecks.checkForVerticalWords) newMoves
@@ -353,15 +355,19 @@ module Scrabble =
                         then acc
                         else
                             let tile = Map.find id' pieces
+                            
 
                             Set.fold (fun accWithChar c -> //for each possible char value a tile can have, try build word
-                                
                                 let ch' = fst c
+                                forcePrint("\n\n THIS SHOUlD BE E : " + ch'.ToString())
                                 let point' = snd c
                                 let coord' = coordFun coord
                                 // TODO this if else is ugly
                                 if Map.containsKey coord' crossCheck
-                                then 
+                                then
+                                    forcePrint("print good when coord is (1,1) " + coord'.ToString())
+                                    forcePrint("crosscheckMap for right coord after E : "  + (Map.find coord' crossCheck).ToString() )
+
                                     if Set.contains ch (Map.find coord crossCheck)
                                     then
                                         let dict' = snd nextDict.Value
