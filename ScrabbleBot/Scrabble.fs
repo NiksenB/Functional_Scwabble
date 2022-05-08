@@ -1,6 +1,7 @@
 ﻿namespace Scwabble
 
 open MultiSet
+
 open ScrabbleUtil
 open ScrabbleUtil.Dictionary
 open ScrabbleUtil.ServerCommunication
@@ -443,7 +444,7 @@ module Scrabble =
             
         
            
-    let setListToHand h = List.fold (fun acc (x, k) -> add x k acc) empty h
+    let listToMultiSet h = List.fold (fun acc (x, k) -> add x k acc) empty h
 
     let rec playerTurnHelper (np : uint32) (next : uint32) (pt : uint32) (f : uint32 Set)  =
         if next.Equals pt
@@ -482,7 +483,8 @@ module Scrabble =
                 forcePrint((st.playerNumber.ToString() + " IS PLAYING THIS: " + (snd theMoveWellTryToMake).ToString()))
                 debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
                 send cstream (SMPlay (snd theMoveWellTryToMake))
-            else send cstream (SMPass) //TODO : (SMChange list-of-uint)
+            else 
+                send cstream (SMChange (MultiSet.toList st.hand)) //TODO : (SMChange list-of-uint)
             let msg = recv cstream
             //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
 
@@ -502,8 +504,8 @@ module Scrabble =
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
         
                 let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), uint32 1)) ms
-                let handRemoveOld = subtract st.hand (setListToHand playedTiles)
-                let handAddNew = sum handRemoveOld (setListToHand newPieces)
+                let handRemoveOld = subtract st.hand (listToMultiSet playedTiles)
+                let handAddNew = sum handRemoveOld (listToMultiSet newPieces)
                 let coordMap' = (updateMap st.coordMap ms) 
                 forcePrint "\n\ncoordmap done"
                 let crossChecks' = updateCrossChecks ms coordMap' st
@@ -583,7 +585,7 @@ module Scrabble =
                 //You changed your tiles
                 let st' = 
                     {st with 
-                        hand = (sum st.hand (setListToHand newTiles));
+                        hand = listToMultiSet newTiles;
                         playerTurn = getNextPlayerTurn st}
                 aux st'
 
