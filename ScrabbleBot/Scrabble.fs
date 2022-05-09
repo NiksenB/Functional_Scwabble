@@ -354,75 +354,12 @@ module Scrabble =
                                 findFirstWord amputatedHand dict' pieces acc'
                                 
                         else //we're headed down a branch with no destination, skip this branch/combination
-                            result
+                            (false, list.Empty)
 
                 ) acc tile
             ) result hand
     
-   
-    
-    // let rec findWordOldAndUgly (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
-    //     let isOccupiedNextToMe = Map.containsKey (coordFun coord) st.coordMap
-        
-    //     if not isOccupiedNextToMe
-    //     then  
-    //         let nextDict = step ch dict
-    //         if Option.isSome nextDict
-    //         then
-    //             let isValidWord = fst nextDict.Value
-    //             if isValidWord && haveAddedOwnLetter
-    //             then
-    //                 (true,snd currentWord)
-    //             else                    
-    //                 fold (fun acc id' amountOfElements->
-    //                     if fst acc
-    //                     then acc
-    //                     else
-    //                         let tile = Map.find id' pieces
-                            
-
-    //                         Set.fold (fun accWithChar c -> //for each possible char value a tile can have, try build word
-    //                             let ch' = fst c
-    //                             let point' = snd c
-    //                             let coord' = coordFun coord
-    //                             if Map.containsKey coord' crossCheck
-    //                             then
-    //                                 forcePrint("print good when coord is (1,1) " + coord'.ToString())
-    //                                 forcePrint("crosscheckMap for right coord after E : "  + (Map.find coord' crossCheck).ToString() )
-
-    //                                 if Set.contains ch' (Map.find coord crossCheck)
-    //                                 then
-    //                                     let dict' = snd nextDict.Value
-    //                                     let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
-    //                                     let newMultiSet = removeSingle id' hand 
-                                
-    //                                     findWordOldAndUgly (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun crossCheck
-    //                                 else
-    //                                     acc
-
-    //                             else
-    //                                 let dict' = snd nextDict.Value
-    //                                 let currentWord'  = (false, snd currentWord@[(coord', (id' , (ch' , point')))] )
-    //                                 let newMultiSet = removeSingle id' hand 
-                                
-    //                                 findWordOldAndUgly (coord', (id' , (ch' , point'))) currentWord' st dict' true newMultiSet pieces coordFun crossCheck
-    //                         ) acc tile  
-
-    //                 ) currentWord hand
-                    
-    //         else
-    //             (false, snd currentWord)
-    //     else
-    //         let letter = Map.find (coordFun coord) st.coordMap
-    //         let id' = (fst letter)
-    //         let dict' = snd (step ch dict).Value
-    //         let tile = Map.find id' pieces
-    //         let point' = snd (snd letter)
-    //         let coord' = coordFun coord
-    //         let ch' = (fst (snd letter))
-            
-    //         findWordOldAndUgly (coord', (id', (ch', point'))) currentWord st dict' haveAddedOwnLetter hand pieces coordFun crossCheck
-
+  
     let rec findWord coord (finishedWords : ((coord * (uint32 * (char * int))) list) list ) (currentAddedTiles : ((coord * (uint32 * (char * int))) list)) (st : State.state) (dict : Dict) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
        
         let isCoordOccupied = Map.containsKey coord st.coordMap
