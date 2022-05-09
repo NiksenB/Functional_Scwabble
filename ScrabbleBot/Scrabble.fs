@@ -384,8 +384,7 @@ module Scrabble =
                                     let currentWord' = s@[(coord, (id, c))]
                                     let dictValue = dOption.Value
                                     if fst dictValue && not(Map.containsKey (coordFun coord) st.coordMap)
-                                    then
-                                        forcePrint("i have found this word ")
+                                    then                                        
                                         let finishedWords' = finishedWords@[currentWord']
                                         let amputatedHand = removeSingle id hand
                                         let (f', _) = findWord (coordFun coord) finishedWords' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
@@ -532,8 +531,50 @@ module Scrabble =
                 forcePrint ("\nI hit a dead end on " + currentAddedTiles.ToString() + "\n")
                 (bestWord, list.Empty)    
     
-    
     let findOneMove (st : State.state) pieces =
+        if List.isEmpty (st.anchorLists.anchorsForVerticalWords) && List.isEmpty (st.anchorLists.anchorsForHorizontalWords)
+        then 
+            let x = findFirstWord st.hand st.dict pieces (false, List.Empty)
+            forcePrint("findFirstWord resulted in: " + x.ToString() + "\n")
+            snd x
+        else 
+            //TODO her skal være to folds, vi mangler en hvor vi går ned af også. 
+            //horizontal
+            let horizontalWords = 
+                List.fold (fun acc (anchorPoint,(b,(c,p)))  ->
+                   if List.isEmpty acc
+                   then
+                       let dict' = step c st.dict
+                       //TODO DONT JUST ASSUME THAT THIS WORKS WITH THE DICT
+                       fst (findWord (getNextRightCoord anchorPoint) List.Empty List.Empty st (snd dict'.Value) st.hand pieces getNextRightCoord st.crossChecks.checkForHorizontalWords)
+                   else
+                       acc
+                ) List.Empty st.anchorLists.anchorsForHorizontalWords
+
+            if (not (List.isEmpty horizontalWords))
+            then
+                forcePrint ("Im gonna play this one horizontally :) " + (horizontalWords[horizontalWords.Length-1]).ToString())
+                horizontalWords[horizontalWords.Length-1]
+            else 
+                let verticalWords = 
+                    List.fold (fun acc (anchorPoint,(b,(c,p)))  -> 
+                        if List.isEmpty acc 
+                        then
+                            let dict' = step c st.dict
+                            fst (findWord (getNextDownCoord anchorPoint) List.Empty List.Empty st (snd dict'.Value) st.hand pieces getNextDownCoord st.crossChecks.checkForVerticalWords)
+                        else
+                            acc
+                    ) List.Empty st.anchorLists.anchorsForVerticalWords
+                if (not (List.isEmpty verticalWords))
+                then
+                    forcePrint ("im gonna play this one vertically :) " + (verticalWords[verticalWords.Length-1]).ToString())
+                    verticalWords[verticalWords.Length-1]
+                else 
+                    //TODO : change briks o
+                    forcePrint "make it clap - i find no word im bad :("
+                    verticalWords[verticalWords.Length-1]
+                    
+    let findOneMoveLongestWordMaybe (st : State.state) pieces =
         if List.isEmpty (st.anchorLists.anchorsForVerticalWords) && List.isEmpty (st.anchorLists.anchorsForHorizontalWords)
         then 
             let x = findFirstWord st.hand st.dict pieces (false, List.Empty)
@@ -608,7 +649,7 @@ module Scrabble =
             //TODO should we somehow check that st.playerTurn = st.playerNumber before trying to play?
             
             Print.printHand pieces (State.hand st)
-            let theMoveWellTryToMake : list<coord * (uint32 * (char * int))> = findOneMove st pieces
+            let theMoveWellTryToMake : list<coord * (uint32 * (char * int))> = findOneMoveLongestWordMaybe st pieces
             let x = List.fold (fun a b -> forcePrint("TILE : "+b.ToString())) () theMoveWellTryToMake
             if not (List.isEmpty theMoveWellTryToMake)
             then 
