@@ -528,7 +528,7 @@ module Scrabble =
                                     if fst dictValue && not(Map.containsKey (coordFun coord) st.coordMap)
                                     then
                                         
-                                        forcePrint("i have found this word " + currentWord'.ToString())
+                                        forcePrint("\n\n i have found this word " + currentWord'.ToString())
                                         let bestWord' =
                                             if (bestWord.Length >= currentWord'.Length)
                                             then bestWord
@@ -553,7 +553,7 @@ module Scrabble =
                                 let dictValue = dOption.Value
                                 if fst dictValue && not(Map.containsKey (coordFun coord) st.coordMap)
                                 then
-                                    forcePrint("i have found this word " + currentWord'.ToString())
+                                    forcePrint("\n\n i have found this word " + currentWord'.ToString())
                                     let bestWord' =
                                             if (bestWord.Length >= currentWord'.Length)
                                             then bestWord
