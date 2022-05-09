@@ -255,21 +255,29 @@ module Scrabble =
               else
                     Map.add  emptyTile Set.empty crossCheckRules
             | true, false ->
-                let emptyTile = nextNeighborCoord coord      
-                let wordBelowAsList = goToStartOfWordAfter emptyTile coordMap 
-                let wordBelow = List.fold (fun acc (_, (ch, _)) -> ch.ToString()+acc) "" wordBelowAsList
-                let wordAbove = goToStartOfWordBefore emptyTile coordMap 
-                let dictFromWordAbove = stepThruWord wordAbove (Option.Some (false, state.dict))
-                if dictFromWordAbove.IsSome 
+                let emptyTile = nextNeighborCoord coord
+                
+               
+                let wordBefore = goToStartOfWordBefore emptyTile coordMap 
+                let dictFromWordBefore = stepThruWord wordBefore (Option.Some (false, state.dict))
+                
+                let wordAfterAsList = goToStartOfWordAfter emptyTile coordMap 
+                let wordAfter = List.fold (fun acc (_, (ch, _)) -> ch.ToString()+acc) "" wordAfterAsList
+                
+                if dictFromWordBefore.IsSome 
                 then
-                    let dictFromAboveNotOption = snd dictFromWordAbove.Value
-                    let validLetters = lookUpWithStringStartingAtEveryLetterOfAlphabet wordBelow dictFromAboveNotOption                    
+                    let dictFromAboveNotOption = snd dictFromWordBefore.Value
+                    let validLetters = lookUpWithStringStartingAtEveryLetterOfAlphabet wordAfter dictFromAboveNotOption                    
                     
                     Map.add emptyTile validLetters crossCheckRules
                 else
-                    Map.add  (nextNeighborCoord coord ) Set.empty crossCheckRules    
+                    Map.add  (nextNeighborCoord coord ) Set.empty crossCheckRules 
                
-                
+            | (false, _) ->
+                //I have a neighbor and possibly more.
+                let notABrik = Map.find (nextNeighborCoord coord) coordMap
+                let brik' = ((nextNeighborCoord coord), notABrik)
+                crossCheckGenericTwoBefore crossCheckRules brik' coordMap state isNeighborFree nextNeighborCoord goToStartOfWordBefore goToStartOfWordAfter    
             | _ -> crossCheckRules
             
     let crossCheckUpAndUp crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
@@ -459,7 +467,7 @@ module Scrabble =
                             then
                                 let currentWord' = s@[(coord, (id, c))]
                                 let dictValue = dOption.Value
-                                if fst dictValue
+                                if fst dictValue && not(Map.containsKey (coordFun coord) st.coordMap)
                                 then
                                     let finishedWords' = finishedWords@[currentWord']
                                     let amputatedHand = removeSingle id hand
@@ -479,7 +487,7 @@ module Scrabble =
             let dOption = step ch dict
             if dOption.IsSome
             then
-                if fst dOption.Value
+                if fst dOption.Value && not(Map.containsKey (coordFun coord) st.coordMap)
                 then
                     if not (List.isEmpty currentAddedTiles)
                     then
@@ -519,11 +527,13 @@ module Scrabble =
                                     let dictValue = dOption.Value
                                     if fst dictValue && not(Map.containsKey (coordFun coord) st.coordMap)
                                     then
+                                        
                                         forcePrint("i have found this word " + currentWord'.ToString())
                                         let bestWord' =
                                             if (bestWord.Length >= currentWord'.Length)
                                             then bestWord
                                             else currentWord'
+                                        
                                         let amputatedHand = removeSingle id hand
                                         let (f', _) = findLongestWordHeuristic (coordFun coord) bestWord' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
                                         (f', s)
@@ -541,8 +551,9 @@ module Scrabble =
                             then
                                 let currentWord' = s@[(coord, (id, c))]
                                 let dictValue = dOption.Value
-                                if fst dictValue
+                                if fst dictValue && not(Map.containsKey (coordFun coord) st.coordMap)
                                 then
+                                    forcePrint("i have found this word " + currentWord'.ToString())
                                     let bestWord' =
                                             if (bestWord.Length >= currentWord'.Length)
                                             then bestWord
@@ -560,18 +571,20 @@ module Scrabble =
                 ) (bestWord, currentAddedTiles) hand
         else
             //der er optaget på denne plads, lad os steppe hvor vi er
-            let (_,(ch,_)) = Map.find coord st.coordMap 
+            let (_,(ch,_)) = Map.find coord st.coordMap
             let dOption = step ch dict
             if dOption.IsSome
             then
-                if fst dOption.Value
+                if fst dOption.Value && not(Map.containsKey (coordFun coord) st.coordMap)
                 then
-                    if not (List.isEmpty currentAddedTiles)
+                    if not (List.isEmpty currentAddedTiles) 
                     then
                         let bestWord' =
                             if (bestWord.Length >= currentAddedTiles.Length)
                             then bestWord
                             else currentAddedTiles
+                         
+                        
                         findLongestWordHeuristic (coordFun coord) bestWord' currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
                     else     
                         findLongestWordHeuristic (coordFun coord) bestWord currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
