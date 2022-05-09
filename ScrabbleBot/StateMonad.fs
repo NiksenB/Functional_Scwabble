@@ -79,8 +79,8 @@
               | Some v -> Success (v, s)
               | None   -> Failure (VarNotFound x))
 
-    //TODO LOOK HERE: JUST ADDED BUT MAI CAN REPLACE WITH BETTER VERSION? 
-    let declare (var : string) : SM<unit> =
+    
+    let declarenNiko (var : string) : SM<unit> =
         S (fun s -> 
             if s.reserved.Contains(var)
             then 
@@ -92,7 +92,7 @@
                 Success ((), {s with vars = (List.append s.vars [Map.add var 0 Map.empty])})
             )
     
-    let declareMai (var : string) : SM<unit> =
+    let declare (var : string) : SM<unit> =
         S (fun s ->
             if s.reserved.Contains var then Failure(ReservedName var)
             else if s.vars.Head.ContainsKey var then Failure(VarExists var)

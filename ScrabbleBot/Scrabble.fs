@@ -190,8 +190,8 @@ module Scrabble =
                 ) [] chars
             Set.ofList validLetters 
     
-    let crossCheckGenericTwoBefore
-     (crossCheckRules : Map<coord, Set<char>>) brik (coordMap : Map<coord, uint32 * (char * int)>) (state : State.state) checkNeighborIsFree nextNeighBorCoord goToStartOfWordBefore goToStartOfWordAfter=
+    let rec crossCheckGenericTwoBefore
+     (crossCheckRules : Map<coord, Set<char>>) brik (coordMap : Map<coord, uint32 * (char * int)>) (state : State.state) checkNeighborIsFree nextNeighBorCoord goToStartOfWordBefore goToStartOfWordAfter =
         forcePrint ("\n\ncrossCheckGenericTwoBefore
          is called for brik: " + brik.ToString())
         let coord = fst brik
@@ -201,15 +201,12 @@ module Scrabble =
         
         match (checkNeighborIsFree coord coordMap, checkNeighborIsFree (nextNeighBorCoord coord) coordMap) with //getNexTUpCord, Hasupneightbor
             |true, false ->
-                forcePrint("\n\ntrue, false")
-
-                forcePrint("\n\ncheckNeighborIsFree returns true on coord: " + (nextNeighBorCoord coord).ToString() + " and false on coord :" + (nextNeighBorCoord(nextNeighBorCoord coord)).ToString() )
                 
-                // this is where theres emptytile both a neighboor up and down, we need to go up all the way first
+                
                 let emptyTile = nextNeighBorCoord coord      
-                let wordBelowAsList = goToStartOfWordAfter emptyTile coordMap // goToStartOfWordBelow!
+                let wordBelowAsList = goToStartOfWordAfter emptyTile coordMap 
                 let wordBelow = List.fold (fun acc (_, (ch, _)) -> ch.ToString()+acc) "" wordBelowAsList
-                let wordAbove = goToStartOfWordBefore emptyTile coordMap // goToStartOfWordAbove
+                let wordAbove = goToStartOfWordBefore emptyTile coordMap 
                 let dictFromWordAbove = stepThruWord wordAbove (Option.Some (false, state.dict))
                 if dictFromWordAbove.IsSome 
                 then
@@ -221,10 +218,7 @@ module Scrabble =
                     Map.add  (nextNeighBorCoord coord ) Set.empty crossCheckRules
                 
             |true, true ->
-                forcePrint("\n\ntrue, true")
-
-                forcePrint("\n\ncheckNeighborIsFree returns true on coord: " + (nextNeighBorCoord coord).ToString() + " and true on coord :" + (nextNeighBorCoord(nextNeighBorCoord coord)).ToString() )
-
+                
                 //No upstairs word, we only need to looks down
                 let emptyTile = nextNeighBorCoord coord
                 let wordBelowAsList = goToStartOfWordAfter emptyTile coordMap
@@ -233,18 +227,23 @@ module Scrabble =
                 //forcePrint("after left and left this should be A : " + wordBelow.ToString())
                 let validLetters = lookUpWithStringStartingAtEveryLetterOfAlphabet wordBelow state.dict                    
                 Map.add emptyTile validLetters crossCheckRules
-                
-            | _ -> crossCheckRules
+            | (false, _) ->
+                //I have a neighbor and possibly more.
+                let notABrik = Map.find (nextNeighBorCoord coord) coordMap
+                let brik' = ((nextNeighBorCoord coord), notABrik)
+                crossCheckGenericTwoBefore crossCheckRules brik' coordMap state checkNeighborIsFree nextNeighBorCoord goToStartOfWordBefore goToStartOfWordAfter
+            | (_,_) -> crossCheckRules
+            
     
     let crossCheckAfter (crossCheckRules : Map<coord, Set<char>>) brik (coordMap : Map<coord, uint32 * (char * int)>) (state : State.state) isNeighborFree nextNeighborCoord goToStartOfWordBefore=
         //the crosscheckDownDown only needs to find if the two below are free, as the crosscheckupandup will have found any empty tile between to vertical words.
         let coord = fst brik
     
-        forcePrint ("\n\ncrossCheckAfter is called for brik: " + brik.ToString())
+        //forcePrint ("\n\ncrossCheckAfter is called for brik: " + brik.ToString())
 
         match (isNeighborFree coord coordMap, isNeighborFree (nextNeighborCoord coord) coordMap) with 
             | true, true ->
-              forcePrint("\n\nisNeighborFree returns true on coord: " + (nextNeighborCoord coord).ToString() + " and true on coord :" + (nextNeighborCoord(nextNeighborCoord coord)).ToString() )
+              //forcePrint("\n\nisNeighborFree returns true on coord: " + (nextNeighborCoord coord).ToString() + " and true on coord :" + (nextNeighborCoord(nextNeighborCoord coord)).ToString() )
               // this is where there is two free spaces below and therefore not found by the match above,
               let emptyTile = nextNeighborCoord coord 
               let wordAbove = goToStartOfWordBefore emptyTile coordMap
@@ -281,21 +280,21 @@ module Scrabble =
             match moves with
             | [] -> (upAndDown, leftAndRight)
             | brik :: brikker ->
-                forcePrint "\n\nJeg kigger oven over mig nu!"
+                //forcePrint "\n\nJeg kigger oven over mig nu!"
                 let upAndDown' = crossCheckUpAndUp upAndDown brik coordMap  st
-                forcePrint ("\nupAndDown' for letter " + brik.ToString() + " is: " + upAndDown'.ToString())
+                //forcePrint ("\nupAndDown' for letter " + brik.ToString() + " is: " + upAndDown'.ToString())
                 // this finds the one where there is two down free
-                forcePrint "\n\nJeg kigger neden under mig nu!"
+                //forcePrint "\n\nJeg kigger neden under mig nu!"
                 let upAndDownResult = crossCheckDownAndDown upAndDown' brik coordMap  st
-                forcePrint ("\nupAndDownResult for letter " + brik.ToString() + " is: " + upAndDownResult.ToString())
+                //forcePrint ("\nupAndDownResult for letter " + brik.ToString() + " is: " + upAndDownResult.ToString())
                 
-                forcePrint "\n\nJeg kigger til venstre for mig nu!"
+                //forcePrint "\n\nJeg kigger til venstre for mig nu!"
                 let leftAndRight' = crossCheckLeftAndLeft leftAndRight brik coordMap st
-                forcePrint ("\nleftAndRight' for letter " + brik.ToString() + " is: " + leftAndRight'.ToString())
+                //forcePrint ("\nleftAndRight' for letter " + brik.ToString() + " is: " + leftAndRight'.ToString())
                 
-                forcePrint "\n\nJeg kigger til højre for mig nu!"
+                //forcePrint "\n\nJeg kigger til højre for mig nu!"
                 let leftAndRightResult = crossCheckRightAndRight leftAndRight' brik coordMap st
-                forcePrint ("\nleftAndRightResult' for letter " + brik.ToString() + " is: " + leftAndRightResult.ToString())
+                //forcePrint ("\nleftAndRightResult' for letter " + brik.ToString() + " is: " + leftAndRightResult.ToString())
                 
                 //forcePrint ("\n\nWe now call runThroughNewTiles again using upAndDownResult and leftAndRightResult")
                 runThroughNewTiles (upAndDownResult, leftAndRightResult) brikker           
@@ -358,7 +357,6 @@ module Scrabble =
     //    else hand
     
     // let rec findWordOldAndUgly (coord, (id , (ch , point))) currentWord (st : State.state) (dict : Dict) (haveAddedOwnLetter : bool) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
-    //     //TODO coordfun here skal transforme coord til et step til højre, så den er nok ikke behov for den i findword men vi skal lave en til nedenunder her
     //     let isOccupiedNextToMe = Map.containsKey (coordFun coord) st.coordMap
         
     //     if not isOccupiedNextToMe
@@ -382,7 +380,6 @@ module Scrabble =
     //                             let ch' = fst c
     //                             let point' = snd c
     //                             let coord' = coordFun coord
-    //                             // TODO this if else is ugly
     //                             if Map.containsKey coord' crossCheck
     //                             then
     //                                 forcePrint("print good when coord is (1,1) " + coord'.ToString())
@@ -422,20 +419,19 @@ module Scrabble =
     //         findWordOldAndUgly (coord', (id', (ch', point'))) currentWord st dict' haveAddedOwnLetter hand pieces coordFun crossCheck
 
     let rec findWord coord (finishedWords : ((coord * (uint32 * (char * int))) list) list ) (currentAddedTiles : ((coord * (uint32 * (char * int))) list)) (st : State.state) (dict : Dict) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
-        //TODO coordfun here skal transforme coord til et step til højre, så den er nok ikke behov for den i findword men vi skal lave en til nedenunder her
+       
         let isCoordOccupied = Map.containsKey coord st.coordMap
         
         if not isCoordOccupied
         then
             if isEmpty hand
             then
-                (finishedWords, currentAddedTiles)
+                (finishedWords, list.Empty)
             else
                 fold (fun (f, s) id _ ->
                     let tile = Map.find id pieces
                     Set.fold (fun accWithChar c ->
                         let ch' = fst c
-                        let point' = snd c
                         if Map.containsKey coord crossCheck
                         then
                             if Set.contains ch' (Map.find coord crossCheck)
@@ -447,12 +443,15 @@ module Scrabble =
                                     let dictValue = dOption.Value
                                     if fst dictValue
                                     then
+                                        forcePrint("i have found this word ")
                                         let finishedWords' = finishedWords@[currentWord']
                                         let amputatedHand = removeSingle id hand
-                                        findWord (coordFun coord) finishedWords' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                        let (f', _) = findWord (coordFun coord) finishedWords' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                        (f', s)
                                     else
                                         let amputatedHand = removeSingle id hand
-                                        findWord (coordFun coord) finishedWords currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                        let (f', _) = findWord (coordFun coord) finishedWords currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                        (f', s)
                                 else
                                     (f,s)
                             else
@@ -467,12 +466,14 @@ module Scrabble =
                                 then
                                     let finishedWords' = finishedWords@[currentWord']
                                     let amputatedHand = removeSingle id hand
-                                    findWord (coordFun coord) finishedWords' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                    let (f', _) = findWord (coordFun coord) finishedWords' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                    (f', s)
                                 else
                                     let amputatedHand = removeSingle id hand
-                                    findWord (coordFun coord) finishedWords currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                    let (f', _) = findWord (coordFun coord) finishedWords currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                    (f', s)
                             else
-                                (f,s)
+                                (f,currentAddedTiles)
                         ) (f,s) tile
                 ) (finishedWords, currentAddedTiles) hand
         else
@@ -494,8 +495,95 @@ module Scrabble =
 
             else
                 forcePrint ("\nI hit a dead end on " + currentAddedTiles.ToString() + "\n")
-                (finishedWords, currentAddedTiles)
+                (finishedWords, list.Empty)
 
+    let rec findWordBestHeuristic coord (bestWord : ((coord * (uint32 * (char * int))) list) ) (currentAddedTiles : ((coord * (uint32 * (char * int))) list)) (st : State.state) (dict : Dict) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
+       
+        let isCoordOccupied = Map.containsKey coord st.coordMap
+        
+        if not isCoordOccupied
+        then
+            if isEmpty hand
+            then
+                (bestWord, list.Empty)
+            else
+                fold (fun (f, s) id _ ->
+                    let tile = Map.find id pieces
+                    Set.fold (fun accWithChar c ->
+                        let ch' = fst c
+                        if Map.containsKey coord crossCheck
+                        then
+                            if Set.contains ch' (Map.find coord crossCheck)
+                            then
+                                let dOption = step ch' dict
+                                if dOption.IsSome
+                                then
+                                    let currentWord' = s@[(coord, (id, c))]
+                                    let dictValue = dOption.Value
+                                    if fst dictValue
+                                    then
+                                        forcePrint("i have found this word " + currentWord'.ToString())
+                                        let bestWord' =
+                                            if (bestWord.Length > currentWord'.Length)
+                                            then bestWord
+                                            else currentWord'
+                                        let amputatedHand = removeSingle id hand
+                                        let (f', _) = findWordBestHeuristic (coordFun coord) bestWord' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                        (f', s)
+                                    else
+                                        let amputatedHand = removeSingle id hand
+                                        let (f', _) = findWordBestHeuristic (coordFun coord) bestWord currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                        (f', s)
+                                else
+                                    (f,s)
+                            else
+                                (f,s)
+                        else 
+                            let dOption = step ch' dict
+                            if dOption.IsSome
+                            then
+                                let currentWord' = s@[(coord, (id, c))]
+                                let dictValue = dOption.Value
+                                if fst dictValue
+                                then
+                                    let bestWord' =
+                                            if (bestWord.Length > currentWord'.Length)
+                                            then bestWord
+                                            else currentWord'
+                                    let amputatedHand = removeSingle id hand
+                                    let (f', _) = findWordBestHeuristic  (coordFun coord) bestWord' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                    (f', s)
+                                else
+                                    let amputatedHand = removeSingle id hand
+                                    let (f', _) = findWordBestHeuristic (coordFun coord) bestWord currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                    (f', s)
+                            else
+                                (f,currentAddedTiles)
+                        ) (f,s) tile
+                ) (bestWord, currentAddedTiles) hand
+        else
+            //der er optaget på denne plads, lad os steppe hvor vi er
+            let (_,(ch,_)) = Map.find coord st.coordMap 
+            let dOption = step ch dict
+            if dOption.IsSome
+            then
+                if fst dOption.Value
+                then
+                    if not (List.isEmpty currentAddedTiles)
+                    then
+                        let bestWord' =
+                            if (bestWord.Length > currentAddedTiles.Length)
+                            then bestWord
+                            else currentAddedTiles
+                        findWordBestHeuristic (coordFun coord) bestWord' currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
+                    else     
+                        findWordBestHeuristic (coordFun coord) bestWord currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
+                else
+                      findWordBestHeuristic (coordFun coord) bestWord currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
+
+            else
+                forcePrint ("\nI hit a dead end on " + currentAddedTiles.ToString() + "\n")
+                (bestWord, list.Empty)    
     
     
     let findOneMove (st : State.state) pieces =
@@ -505,7 +593,6 @@ module Scrabble =
             forcePrint("findFirstWord resulted in: " + x.ToString() + "\n")
             snd x
         else 
-            //TODO her skal være to folds, vi mangler en hvor vi går ned af også. 
             //horizontal
             let horizontalWords = 
                 List.fold (fun acc (anchorPoint,(b,(c,p)))  ->
@@ -513,33 +600,33 @@ module Scrabble =
                    then
                        let dict' = step c st.dict
                        //TODO DONT JUST ASSUME THAT THIS WORKS WITH THE DICT
-                       fst (findWord (getNextRightCoord anchorPoint) List.Empty List.Empty st (snd dict'.Value) st.hand pieces getNextRightCoord st.crossChecks.checkForHorizontalWords)
+                       fst (findWordBestHeuristic (getNextRightCoord anchorPoint) acc List.Empty st (snd dict'.Value) st.hand pieces getNextRightCoord st.crossChecks.checkForHorizontalWords)
                    else
                        acc
                 ) List.Empty st.anchorLists.anchorsForHorizontalWords
 
             if (not (List.isEmpty horizontalWords))
             then
-                forcePrint ("Im gonna play this one horizontally :) " + (horizontalWords[0]).ToString())
-                horizontalWords[0]
+                forcePrint ("Im gonna play this one horizontally :) " + (horizontalWords).ToString())
+                horizontalWords
             else 
                 let verticalWords = 
                     List.fold (fun acc (anchorPoint,(b,(c,p)))  -> 
                         if List.isEmpty acc 
                         then
                             let dict' = step c st.dict
-                            fst (findWord (getNextDownCoord anchorPoint) List.Empty List.Empty st (snd dict'.Value) st.hand pieces getNextDownCoord st.crossChecks.checkForVerticalWords)
+                            fst (findWordBestHeuristic (getNextDownCoord anchorPoint) acc List.Empty st (snd dict'.Value) st.hand pieces getNextDownCoord st.crossChecks.checkForVerticalWords)
                         else
                             acc
                     ) List.Empty st.anchorLists.anchorsForVerticalWords
-                if (not (List.isEmpty verticalWords[0]))
+                if (not (List.isEmpty verticalWords))
                 then
-                    forcePrint ("im gonna play this one vertically :) " + (verticalWords[0]).ToString())
-                    verticalWords[0]
+                    forcePrint ("im gonna play this one vertically :) " + (verticalWords).ToString())
+                    verticalWords
                 else 
                     //TODO : change briks o
                     forcePrint "make it clap - i find no word im bad :("
-                    verticalWords[0]
+                    verticalWords
 
             
         
@@ -608,25 +695,25 @@ module Scrabble =
                 let handRemoveOld = subtract st.hand (listToMultiSet playedTiles)
                 let handAddNew = sum handRemoveOld (listToMultiSet newPieces)
                 let coordMap' = (updateMap st.coordMap ms) 
-                forcePrint "\n\ncoordmap done"
+                //forcePrint "\n\ncoordmap done"
                 let crossChecks' = updateCrossChecks ms coordMap' st
                 
-                forcePrint "\n\ncrosschecks vertical words"
-                Map.fold (fun _ key value -> forcePrint(key.ToString() + value.ToString())) () crossChecks'.checkForVerticalWords
+                //forcePrint "\n\ncrosschecks vertical words"
+                //Map.fold (fun _ key value -> forcePrint(key.ToString() + value.ToString())) () crossChecks'.checkForVerticalWords
                 
-                forcePrint "\n\ncrosschecks horizontal words"
-                Map.fold (fun _ key value -> forcePrint(key.ToString() + value.ToString())) () crossChecks'.checkForHorizontalWords
+               // forcePrint "\n\ncrosschecks horizontal words"
+                //Map.fold (fun _ key value -> forcePrint(key.ToString() + value.ToString())) () crossChecks'.checkForHorizontalWords
 
                 let anchorLists' = updateAnchors coordMap'
                 
                 
-                forcePrint("anchor done" + anchorLists'.ToString() + "\n\n")
+                //forcePrint("anchor done" + anchorLists'.ToString() + "\n\n")
 
-                forcePrint "\n\nanchorlist vertical"
-                List.fold (fun _ y -> forcePrint(y.ToString())) () anchorLists'.anchorsForVerticalWords
+                //orcePrint "\n\nanchorlist vertical"
+                //List.fold (fun _ y -> forcePrint(y.ToString())) () anchorLists'.anchorsForVerticalWords
 
-                forcePrint "\n\nanchorlist horizontal"
-                List.fold (fun _ y -> forcePrint(y.ToString())) () anchorLists'.anchorsForHorizontalWords
+                //forcePrint "\n\nanchorlist horizontal"
+                //List.fold (fun _ y -> forcePrint(y.ToString())) () anchorLists'.anchorsForHorizontalWords
 
                 let st' =   { st with
                                 playerTurn = (getNextPlayerTurn st)
@@ -650,6 +737,7 @@ module Scrabble =
 
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
+                
                 forcePrint("HOT DIGGIDY DAWG" + "\n\n")
                 let coordMap' = (updateMap st.coordMap ms)        
                 forcePrint("HOT DIGGIDY DAWG" + "\n\n")
@@ -706,10 +794,6 @@ module Scrabble =
         
             //TODO Handle a few of the different Gameplay errors? (see Scrabble.pdf)
             | RGPE err -> printfn "Gameplay Error:\n%A" err; aux st
-    
-//        let farmand = step ' ' st.dict
-//        let mor = farmand.Value
-//        forcePrint("mor")
         
         aux st
 
