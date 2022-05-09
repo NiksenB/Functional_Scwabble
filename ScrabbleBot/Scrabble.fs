@@ -326,38 +326,33 @@ module Scrabble =
     
     
     
-    let rec findFirstWord (hand : MultiSet<uint32>) (dict : Dict) (pieces : Map<uint32, tile>) (result : bool * list<coord * (uint32 * (char * int))>) =
-        if MultiSet.isEmpty hand || fst result
-        then result
+    let rec findFirstWord (hand : MultiSet<uint32>) (dict : Dict) (pieces : Map<uint32, tile>) (finishedWords : ((coord * (uint32 * (char * int))) list) list ) (currentAddedTiles : ((coord * (uint32 * (char * int))) list)) =
+        if MultiSet.isEmpty hand
+        then (finishedWords, List.empty)
         else
-            MultiSet.fold (fun acc id amount -> //Go through the hand
+            fold (fun (f, s) id _ ->
                 let tile = Map.find id pieces
                 
-                Set.fold (fun accWithChar c -> //for each possible char value a tile can have, try build word
-                    if fst accWithChar
-                    then accWithChar
-                    else 
-                        let ch = fst c
-                        let dictOption = step ch dict
-                        let currentList = snd accWithChar
-                        if dictOption.IsSome
-                        then
-                            let dict' = snd (dictOption.Value)
+                Set.fold (fun accWithChar c -> 
+                    let ch = fst c
+                    let dictOption = step ch dict
+                    if dOption.IsSome
+                    then
+                            let currentAddedTiles' = s@[(coord, (id, c))]
+                            let dictValue = dOption.Value
                             let amputatedHand = MultiSet.removeSingle id hand
-                            let xAxisPlacement = snd accWithChar |> List.length
-                            let newList = currentList@[((0,xAxisPlacement),(id,c))]
-                            if fst (dictOption.Value) && List.length newList >= 2
+                            
+                            if fst (dictOption.Value) && List.length currentAddedTiles' >= 2
                             then
-                                (true, newList)
-                            else
-                                let acc' = (false, newList)
-                                findFirstWord amputatedHand dict' pieces acc'
+                                finishedWords' = AAA
                                 
-                        else //we're headed down a branch with no destination, skip this branch/combination
-                            result
-
-                ) acc tile
-            ) result hand
+                            else
+                                
+                    else
+                        (f,s)
+                    
+                ) (f, s) tile
+            ) (finishedWords, currentAddedTiles) hand
     
    
     
