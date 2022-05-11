@@ -590,6 +590,7 @@ module Scrabble =
                 else 
                     //TODO : change briks o
                     forcePrint "make it clap - i find no word im bad :("
+                    forcePrint ("the hand is: " +  (MultiSet.toList (st.hand)).ToString())
                     verticalWords[verticalWords.Length-1]
                     
     let findOneMoveLongestWordMaybe (st : State.state) pieces =
@@ -629,8 +630,6 @@ module Scrabble =
                     //TODO : change briks o
                     forcePrint "make it clap - i find no word im bad :("
                     verticalWords
-
-            
         
            
     let listToMultiSet h = List.fold (fun acc (x, k) -> add x k acc) empty h
