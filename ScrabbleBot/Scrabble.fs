@@ -707,7 +707,7 @@ module Scrabble =
                 let handAddNew = sum handRemoveOld (listToMultiSet newPieces)
                 let coordMap' = (updateMap st.coordMap ms)
                 
-                let piecesLeft' = st.piecesLeft - ms.Length
+                let piecesLeft' = st.piecesLeft - newPieces.Length
                 let crossChecks' = updateCrossChecks ms coordMap' st              
                 
                 let anchorLists' = updateAnchors coordMap'              
@@ -736,17 +736,28 @@ module Scrabble =
                 let crossChecks' = updateCrossChecks ms coordMap' st              
                 
                 let anchorLists' = updateAnchors coordMap'
-                let piecesLeft' = st.piecesLeft - ms.Length              
-               
-                let st' =   { st with
+
+                if st.piecesLeft >= 7
+                then 
+                    let piecesLeft' = st.piecesLeft - ms.Length              
+                
+                    let st' =   { st with
+                                    playerTurn = (getNextPlayerTurn st)
+                                    coordMap = coordMap'
+                                    anchorLists = anchorLists'
+                                    crossChecks = crossChecks'
+                                    piecesLeft = piecesLeft'
+                    }
+                    aux st'               
+                else 
+                    let st' =   { st with
                                 playerTurn = (getNextPlayerTurn st)
                                 coordMap = coordMap'
                                 anchorLists = anchorLists'
                                 crossChecks = crossChecks'
-                                piecesLeft = piecesLeft'
-                }               
-                
-                aux st'
+                                piecesLeft = 0
+                    }
+                    aux st'
 
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
@@ -780,32 +791,26 @@ module Scrabble =
                     let handRemoveOld = MultiSet.subtract (MultiSet.ofList (tilesToRemove)) st.hand 
                     let handAddNew = MultiSet.sum handRemoveOld (listToMultiSet newTiles)
 
-                    let piecesLeft' = st.piecesLeft - newTiles.Length
                     let st' = 
                         {st with 
                             hand = handAddNew;
                             playerTurn = getNextPlayerTurn st;
-                            piecesLeft = piecesLeft'
                             }
                     aux st'
                 else 
-                    let piecesLeft' = st.piecesLeft - newTiles.Length
                     let st' = 
                         {st with 
                             hand = listToMultiSet newTiles;
                             playerTurn = getNextPlayerTurn st;
-                            piecesLeft = piecesLeft'
                             }
                     aux st'
 
             | RCM (CMChange (pid, numTiles)) ->
                 //Some other player changed their hand
                 forcePrint("Player " + pid.ToString() + " changed " + numTiles.ToString() + " tiles.\n\n")
-                let piecesLeft' = st.piecesLeft - int numTiles
                 let st' = 
                     { st with 
                         playerTurn = getNextPlayerTurn st;
-                        piecesLeft = piecesLeft'
                     }
                 aux st'
 
@@ -847,7 +852,8 @@ module Scrabble =
                 
         let handSet = List.fold (fun acc (x, k) -> add x k acc) empty hand
 
-        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (State.mkAnchors List.empty List.empty) (State.mkCrossChekcs Map.empty Map.empty) 100) 
+
+        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (State.mkAnchors List.empty List.empty) (State.mkCrossChekcs Map.empty Map.empty) 93) 
     
     
     
