@@ -590,7 +590,7 @@ module Scrabble =
                 else 
                     //TODO : change briks o
                     forcePrint "make it clap - i find no word im bad :("
-                    forcePrint ("the hand is: " +  (MultiSet.toList (st.hand)).ToString())
+                    //forcePrint ("the hand is: " +  (MultiSet.toList (st.hand)).ToString())
                     verticalWords[verticalWords.Length-1]
                     
     let findOneMoveLongestWordMaybe (st : State.state) pieces =
@@ -685,8 +685,16 @@ module Scrabble =
                     forcePrint((st.playerNumber.ToString() + " IS PLAYING THIS: " + (theMoveWellTryToMake).ToString()))
                     debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
                     send cstream (SMPlay (theMoveWellTryToMake))
-                else 
-                    send cstream (SMChange (MultiSet.toList st.hand)) //TODO : (SMChange list-of-uint)
+                else
+                    if st.piecesLeft >= 7
+                    then
+                        forcePrint("Trying to swap 7 tiles")
+                        send cstream (SMChange (MultiSet.toList st.hand)) //TODO : (SMChange list-of-uint)
+                    else
+                        let tilesToRemove = (MultiSet.toList st.hand) |> List.take (st.piecesLeft)
+                        forcePrint($"Trying to swap {tilesToRemove.Length.ToString()} tiles")
+                        send cstream (SMChange tilesToRemove)
+                    
                 //let msg = recv cstream
                 //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
                 
@@ -861,7 +869,7 @@ module Scrabble =
         let handSet = List.fold (fun acc (x, k) -> add x k acc) empty hand
 
 
-        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (State.mkAnchors List.empty List.empty) (State.mkCrossChekcs Map.empty Map.empty) 93) 
+        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (State.mkAnchors List.empty List.empty) (State.mkCrossChekcs Map.empty Map.empty) 91) 
     
     
     

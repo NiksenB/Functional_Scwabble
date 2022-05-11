@@ -43,7 +43,7 @@ let main argv =
     let handSize   = 7u
     let timeout    = None
     let tiles      = ScrabbleUtil.English.tiles 1u
-    let seed       = Some 13421 //19 //27 very nice //17 bad //14 bad //1337 good //999 good //13498 good //1020 good
+    let seed       = Some 17 //16 ok //13421 //19 //27 very nice //17 bad //14 bad - now good //1337 good //999 good //13498 good //1020 good
     let port       = 13001
 
     let dictAPI =
