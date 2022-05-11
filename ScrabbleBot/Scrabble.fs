@@ -359,16 +359,18 @@ module Scrabble =
                             let dict' = snd (dictOption.Value)
                             let amputatedHand = MultiSet.removeSingle id hand
                             let xAxisPlacement = snd accWithChar |> List.length
+                            
                             let newList = currentList@[((0,xAxisPlacement),(id,c))]
                             if fst (dictOption.Value) && List.length newList >= 2
                             then
                                 (true, newList)
                             else
                                 let acc' = (false, newList)
-                                findFirstWord amputatedHand dict' pieces acc'
+                                let (b', word) = findFirstWord amputatedHand dict' pieces acc'
+                                if b' then (b', word) else (b', snd acc)
                                 
                         else //we're headed down a branch with no destination, skip this branch/combination
-                            (false, list.Empty)
+                            (false, snd acc)
 
                 ) acc tile
             ) result hand
