@@ -625,9 +625,8 @@ module Scrabble =
                     forcePrint ("im gonna play this one vertically :) " + (verticalWords).ToString())
                     verticalWords
                 else 
-                    //TODO : change briks o
                     forcePrint "make it clap - i find no word im bad :("
-                    verticalWords
+                    List.Empty
         
            
     let listToMultiSet h = List.fold (fun acc (x, k) -> add x k acc) empty h
@@ -661,15 +660,7 @@ module Scrabble =
     let playGame cstream pieces (st : State.state) =
 
         let rec aux (st : State.state) =
-            //Print.printHand pieces (State.hand st)
-
-            // remove the force print when you move on from manual input (or when you have learnt the format)
-            //forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
             
-            //forcePrint("results: "+words.ToString()+"\n\n")
-            //List.fold (fun acc x -> forcePrint("Det her er et valid ord: "+x.ToString()+"\n\n")) () words
-
-            //TODO should we somehow check that st.playerTurn = st.playerNumber before trying to play?
             
             if st.playerTurn = st.playerNumber
             then
@@ -790,10 +781,20 @@ module Scrabble =
                 aux st'
             
             | RCM (CMChangeSuccess(newTiles)) ->
-                //You changed your tiles
+                //You changed your tiles              
+                forcePrint("\n\n old hand  ")
+                let number = if st.piecesLeft >= 7 then 7 else st.piecesLeft
                 
-                
-                let handAddNew = sum st.hand (listToMultiSet newTiles)
+                let tilesToRemove = (MultiSet.toList st.hand) |> List.take (number)
+                forcePrint("\n\n 797  ")
+                let thething = List.fold (fun acc element -> MultiSet.addSingle element acc) MultiSet.empty tilesToRemove
+                forcePrint("\n\n 799  ")
+                let handRemoveOld = subtract st.hand thething
+                forcePrint("\n\n 801  ")
+                let handAddNew = sum handRemoveOld (listToMultiSet newTiles)
+                        
+                forcePrint("\n\n new hand  ")
+                Print.printHand pieces (handAddNew)
                 let st' = {st with
                             hand = handAddNew }
                 aux st'
