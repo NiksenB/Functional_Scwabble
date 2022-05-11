@@ -66,6 +66,7 @@ module State =
         coordMap      : Map<coord, uint32 * (char * int)>
         anchorLists   : anchors
         crossChecks   : crossChecks
+        piecesLeft    : int
     }
     
     
@@ -75,8 +76,8 @@ module State =
     let mkCrossChekcs h v = {checkForHorizontalWords = h; checkForVerticalWords = v;}
     
     let mkAnchors h v = {anchorsForHorizontalWords = h; anchorsForVerticalWords =v; }
-    let mkState b d np pn pt f p h cm al cc = 
-        {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossChecks = cc }
+    let mkState b d np pn pt f p h cm al cc pl = 
+        {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossChecks = cc; piecesLeft = pl }
 
     let board st         = st.board
     let dict st          = st.dict
@@ -88,7 +89,8 @@ module State =
     let hand st          = st.hand
     let coordMap st      = st.coordMap
     let anchorLists st   = st.anchorLists
-    let crossChecks st    = st.crossChecks
+    let crossChecks st   = st.crossChecks
+    let piecesLeft st    = st.piecesLeft
     
 
 
@@ -588,6 +590,7 @@ module Scrabble =
                 else 
                     //TODO : change briks o
                     forcePrint "make it clap - i find no word im bad :("
+                    forcePrint ("the hand is: " +  (MultiSet.toList (st.hand)).ToString())
                     verticalWords[verticalWords.Length-1]
                     
     let findOneMoveLongestWordMaybe (st : State.state) pieces =
@@ -627,8 +630,6 @@ module Scrabble =
                     //TODO : change briks o
                     forcePrint "make it clap - i find no word im bad :("
                     verticalWords
-
-            
         
            
     let listToMultiSet h = List.fold (fun acc (x, k) -> add x k acc) empty h
@@ -694,7 +695,7 @@ module Scrabble =
                 ()
                 
             let msg = recv cstream
- 
+
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
@@ -704,6 +705,7 @@ module Scrabble =
                 let handAddNew = sum handRemoveOld (listToMultiSet newPieces)
                 let coordMap' = (updateMap st.coordMap ms)
                 
+                let piecesLeft' = st.piecesLeft - newPieces.Length
                 let crossChecks' = updateCrossChecks ms coordMap' st              
                 
                 let anchorLists' = updateAnchors coordMap'              
@@ -715,6 +717,7 @@ module Scrabble =
                                 coordMap = coordMap'
                                 anchorLists = anchorLists'
                                 crossChecks = crossChecks'
+                                piecesLeft = piecesLeft'
                 }                                        
                 
                 forcePrint("\n\nYour hand: " + st'.hand.ToString())                
@@ -730,16 +733,29 @@ module Scrabble =
                 let coordMap' = (updateMap st.coordMap ms)
                 let crossChecks' = updateCrossChecks ms coordMap' st              
                 
-                let anchorLists' = updateAnchors coordMap'              
-               
-                let st' =   { st with
+                let anchorLists' = updateAnchors coordMap'
+
+                if st.piecesLeft >= 7
+                then 
+                    let piecesLeft' = st.piecesLeft - ms.Length              
+                
+                    let st' =   { st with
+                                    playerTurn = (getNextPlayerTurn st)
+                                    coordMap = coordMap'
+                                    anchorLists = anchorLists'
+                                    crossChecks = crossChecks'
+                                    piecesLeft = piecesLeft'
+                    }
+                    aux st'               
+                else 
+                    let st' =   { st with
                                 playerTurn = (getNextPlayerTurn st)
                                 coordMap = coordMap'
                                 anchorLists = anchorLists'
                                 crossChecks = crossChecks'
-                }               
-                
-                aux st'
+                                piecesLeft = 0
+                    }
+                    aux st'
 
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
@@ -748,6 +764,7 @@ module Scrabble =
                 aux st'
 
             | RCM (CMGameOver pointList) ->
+                forcePrint("\nRemaining tiles: " + st.piecesLeft.ToString() + "\n")
                 for playerResults in pointList
                     do
                         forcePrint("Player " + (fst playerResults).ToString() + ": " + (snd playerResults).ToString() + "points.\n")
@@ -765,16 +782,34 @@ module Scrabble =
             
             | RCM (CMChangeSuccess(newTiles)) ->
                 //You changed your tiles
-                let st' = 
-                    {st with 
-                        hand = listToMultiSet newTiles;
-                        playerTurn = getNextPlayerTurn st}
-                aux st'
+
+                if st.piecesLeft <= 7 
+                then
+                    let tilesToRemove = (MultiSet.toList st.hand) |> List.take (st.piecesLeft)
+                    let handRemoveOld = MultiSet.subtract (MultiSet.ofList (tilesToRemove)) st.hand 
+                    let handAddNew = MultiSet.sum handRemoveOld (listToMultiSet newTiles)
+
+                    let st' = 
+                        {st with 
+                            hand = handAddNew;
+                            playerTurn = getNextPlayerTurn st;
+                            }
+                    aux st'
+                else 
+                    let st' = 
+                        {st with 
+                            hand = listToMultiSet newTiles;
+                            playerTurn = getNextPlayerTurn st;
+                            }
+                    aux st'
 
             | RCM (CMChange (pid, numTiles)) ->
                 //Some other player changed their hand
                 forcePrint("Player " + pid.ToString() + " changed " + numTiles.ToString() + " tiles.\n\n")
-                let st' = {st with playerTurn = getNextPlayerTurn st}
+                let st' = 
+                    { st with 
+                        playerTurn = getNextPlayerTurn st;
+                    }
                 aux st'
 
             | RCM (CMTimeout pid) ->
@@ -789,7 +824,6 @@ module Scrabble =
             | RGPE err -> printfn "Gameplay Error:\n%A" err; aux st
         
         aux st
-
 
 
     let startGame 
@@ -816,7 +850,8 @@ module Scrabble =
                 
         let handSet = List.fold (fun acc (x, k) -> add x k acc) empty hand
 
-        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (State.mkAnchors List.empty List.empty) (State.mkCrossChekcs Map.empty Map.empty)) 
+
+        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (State.mkAnchors List.empty List.empty) (State.mkCrossChekcs Map.empty Map.empty) 93) 
     
     
     
