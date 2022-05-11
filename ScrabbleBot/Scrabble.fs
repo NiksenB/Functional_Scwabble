@@ -111,8 +111,7 @@ module Scrabble =
     let hasNotLeftNeighbor coord coordMap = 
         not (Map.containsKey (getNexLeftCoord coord) coordMap)
     
-    let hasNotUpNeighbor coord coordMap =
-        
+    let hasNotUpNeighbor coord coordMap =        
         not (Map.containsKey (getNextUpCoord coord) coordMap)
     
     let hasNotDownNeighbor coord coordMap =
@@ -125,8 +124,7 @@ module Scrabble =
         let (anchorListHorizontal, anchorListVertical) =
             Map.fold (fun (anchorListHorizontal, anchorListVertical) key value ->
             match ( hasNotLeftNeighbor key coordMap, hasNotUpNeighbor key coordMap) with
-                |true,true ->
-                    
+                |true,true ->                    
                     let hori' =  (key,value) :: anchorListHorizontal 
                     let verti' = (key,value) :: anchorListVertical
                     //it gets the coordinates just left and above of the stuff put on the map, if they are free
@@ -638,11 +636,10 @@ module Scrabble =
         if np.Equals 1u
         then
             1u
-        else     
-            forcePrint("Jeg er uendelig, hvem er du")
+        else  
+            
             if next.Equals pt
             then
-                forcePrint("hvad så brutus ")
                 failwith "It seems all other players have forfeited."
             else 
                 if np >= next && not(Set.contains next f) //the next player is existing and active
@@ -652,7 +649,6 @@ module Scrabble =
                 else if Set.contains next f //next player has forfeited
                     then playerTurnHelper np (next + uint32 1) pt f
                 else
-                    forcePrint("ich bin ein berliner")
                     failwith "Unexpected error when finding next player."
 
     let getNextPlayerTurn (st : State.state) = 
@@ -687,19 +683,7 @@ module Scrabble =
                     send cstream (SMPlay (theMoveWellTryToMake))
                 else 
                     send cstream (SMChange (MultiSet.toList st.hand)) //TODO : (SMChange list-of-uint)
-                //let msg = recv cstream
-                //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
                 
-                
-                
-                //let input =  System.Console.ReadLine()
-                //let move = RegEx.parseMove input
-                
-                //debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-                //send cstream (SMPlay move)
-                
-                // let msg = recv cstream
-                // debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             else
                 forcePrint("Jeg er ikke den rigtige spiller - så hvem er duuuuu")
                 ()
@@ -792,26 +776,13 @@ module Scrabble =
             
             | RCM (CMChangeSuccess(newTiles)) ->
                 //You changed your tiles
-
-                if st.piecesLeft <= 7 
-                then
-                    let tilesToRemove = (MultiSet.toList st.hand) |> List.take (st.piecesLeft)
-                    let handRemoveOld = MultiSet.subtract (MultiSet.ofList (tilesToRemove)) st.hand 
-                    let handAddNew = MultiSet.sum handRemoveOld (listToMultiSet newTiles)
-
-                    let st' = 
-                        {st with 
-                            hand = handAddNew;
-                            playerTurn = getNextPlayerTurn st;
-                            }
-                    aux st'
-                else 
-                    let st' = 
-                        {st with 
-                            hand = listToMultiSet newTiles;
-                            playerTurn = getNextPlayerTurn st;
-                            }
-                    aux st'
+                
+                
+                let handAddNew = sum st.hand (listToMultiSet newTiles)
+                let st' = {st with
+                            hand = handAddNew }
+                aux st'
+               
 
             | RCM (CMChange (pid, numTiles)) ->
                 //Some other player changed their hand
