@@ -43,7 +43,7 @@ let main argv =
     let handSize   = 7u
     let timeout    = None
     let tiles      = ScrabbleUtil.English.tiles 1u
-    let seed       = Some 1256
+    let seed       = Some 13421 //19 //27 very nice //17 bad //14 bad //1337 good //999 good //13498 good //1020 good
     let port       = 13001
 
     let dictAPI =
@@ -64,6 +64,8 @@ let main argv =
         
     // Uncomment this line to call your client
     let players    = [("ScwabbleBot", dictionary, Scwabble.Scrabble.startGame)]
+    //let players = spawnMultiples "ScwabbleBot" dictionary Scwabble.Scrabble.startGame 2
+    //let players    = [("ScwabbleBot", dictionary, Scwabble.Scrabble.startGame); ("OxyphenButazone", dictionary, Oxyphenbutazone.Scrabble.startGame)]
     // let players = spawnMultiples "OxyphenButazone" dictionary Oxyphenbutazone.Scrabble.startGame 2
         
 

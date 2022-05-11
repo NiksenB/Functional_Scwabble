@@ -640,14 +640,16 @@ module Scrabble =
             if np >= next && not(Set.contains next f) //the next player is existing and active
                 then next
             else if (np < next) //next player number exceeds the total number of players
-                then playerTurnHelper np (uint32 0) pt f
+                then playerTurnHelper np (uint32 1) pt f
             else if Set.contains next f //next player has forfeited
                 then playerTurnHelper np (next + uint32 1) pt f
             else failwith "Unexpected error when finding next player."
 
     let getNextPlayerTurn (st : State.state) = 
-        playerTurnHelper st.numOfPlayers (st.playerTurn + uint32 1) st.playerTurn st.forfeited
-    
+        let hehe = playerTurnHelper st.numOfPlayers (st.playerTurn + uint32 1) st.playerTurn st.forfeited
+        forcePrint("\n\nTHIS IS THE NEXT PLAYER"+hehe.ToString()+"\n\n")
+        hehe
+        
     let updateMap oldmap message= List.fold (fun newmap (coord, brik) -> Map.add coord brik newmap) oldmap message
     
     let playGame cstream pieces (st : State.state) =
@@ -663,30 +665,36 @@ module Scrabble =
 
             //TODO should we somehow check that st.playerTurn = st.playerNumber before trying to play?
             
-            Print.printHand pieces (State.hand st)
-            let theMoveWellTryToMake : list<coord * (uint32 * (char * int))> = findOneMoveLongestWordMaybe st pieces
-            //let x = List.fold (fun a b -> forcePrint("TILE : "+b.ToString())) () theMoveWellTryToMake
-            if not (List.isEmpty theMoveWellTryToMake)
-            then 
-                forcePrint(("\n\n"+st.playerNumber.ToString() + " IS PLAYING THIS: " + (theMoveWellTryToMake).ToString()))
-                debugPrint (sprintf "\n\n Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
-                send cstream (SMPlay (theMoveWellTryToMake))
-            else 
-                send cstream (SMChange (MultiSet.toList st.hand)) //TODO : (SMChange list-of-uint)
+            if st.playerTurn = st.playerNumber
+            then
+                Print.printHand pieces (State.hand st)
+                let theMoveWellTryToMake : list<coord * (uint32 * (char * int))> = findOneMoveLongestWordMaybe st pieces
+                let x = List.fold (fun a b -> forcePrint("TILE : "+b.ToString())) () theMoveWellTryToMake
+                if not (List.isEmpty theMoveWellTryToMake)
+                then 
+                    forcePrint((st.playerNumber.ToString() + " IS PLAYING THIS: " + (theMoveWellTryToMake).ToString()))
+                    debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
+                    send cstream (SMPlay (theMoveWellTryToMake))
+                else 
+                    send cstream (SMChange (MultiSet.toList st.hand)) //TODO : (SMChange list-of-uint)
+                //let msg = recv cstream
+                //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
+                
+                
+                
+                //let input =  System.Console.ReadLine()
+                //let move = RegEx.parseMove input
+                
+                //debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+                //send cstream (SMPlay move)
+                
+                // let msg = recv cstream
+                // debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+            else
+                ()
+                
             let msg = recv cstream
-            //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
-
-
-
-            //let input =  System.Console.ReadLine()
-            //let move = RegEx.parseMove input
-
-            //debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-            //send cstream (SMPlay move)
-
-            // let msg = recv cstream
-            // debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-
+ 
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
