@@ -635,16 +635,25 @@ module Scrabble =
     let listToMultiSet h = List.fold (fun acc (x, k) -> add x k acc) empty h
 
     let rec playerTurnHelper (np : uint32) (next : uint32) (pt : uint32) (f : uint32 Set)  =
-        if next.Equals pt
-            then failwith "It seems all other players have forfeited."
-        else 
-            if np >= next && not(Set.contains next f) //the next player is existing and active
-                then next
-            else if (np < next) //next player number exceeds the total number of players
-                then playerTurnHelper np (uint32 1) pt f
-            else if Set.contains next f //next player has forfeited
-                then playerTurnHelper np (next + uint32 1) pt f
-            else failwith "Unexpected error when finding next player."
+        if np.Equals 1u
+        then
+            1u
+        else     
+            forcePrint("Jeg er uendelig, hvem er du")
+            if next.Equals pt
+            then
+                forcePrint("hvad så brutus ")
+                failwith "It seems all other players have forfeited."
+            else 
+                if np >= next && not(Set.contains next f) //the next player is existing and active
+                    then next
+                else if (np < next) //next player number exceeds the total number of players
+                    then playerTurnHelper np (uint32 1) pt f
+                else if Set.contains next f //next player has forfeited
+                    then playerTurnHelper np (next + uint32 1) pt f
+                else
+                    forcePrint("ich bin ein berliner")
+                    failwith "Unexpected error when finding next player."
 
     let getNextPlayerTurn (st : State.state) = 
         let hehe = playerTurnHelper st.numOfPlayers (st.playerTurn + uint32 1) st.playerTurn st.forfeited
@@ -692,6 +701,7 @@ module Scrabble =
                 // let msg = recv cstream
                 // debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             else
+                forcePrint("Jeg er ikke den rigtige spiller - så hvem er duuuuu")
                 ()
                 
             let msg = recv cstream
@@ -749,11 +759,11 @@ module Scrabble =
                     aux st'               
                 else 
                     let st' =   { st with
-                                playerTurn = (getNextPlayerTurn st)
-                                coordMap = coordMap'
-                                anchorLists = anchorLists'
-                                crossChecks = crossChecks'
-                                piecesLeft = 0
+                                    playerTurn = (getNextPlayerTurn st)
+                                    coordMap = coordMap'
+                                    anchorLists = anchorLists'
+                                    crossChecks = crossChecks'
+                                    piecesLeft = 0
                     }
                     aux st'
 
