@@ -253,7 +253,7 @@ module Scrabble =
                 let notABrik = Map.find (nextNeighBorCoord coord) coordMap
                 let brik' = ((nextNeighBorCoord coord), notABrik)
                 crossCheckGenericTwoBefore crossCheckRules brik' coordMap state checkNeighborIsFree nextNeighBorCoord goToStartOfWordBefore goToStartOfWordAfter
-            | (_,_) -> crossCheckRules
+            
             
     
     let crossCheckAfter (crossCheckRules : Map<coord, Set<char>>) brik (coordMap : Map<coord, uint32 * (char * int)>) (state : State.state) isNeighborFree nextNeighborCoord goToStartOfWordBefore goToStartOfWordAfter=
@@ -665,11 +665,11 @@ module Scrabble =
             
             Print.printHand pieces (State.hand st)
             let theMoveWellTryToMake : list<coord * (uint32 * (char * int))> = findOneMoveLongestWordMaybe st pieces
-            let x = List.fold (fun a b -> forcePrint("TILE : "+b.ToString())) () theMoveWellTryToMake
+            //let x = List.fold (fun a b -> forcePrint("TILE : "+b.ToString())) () theMoveWellTryToMake
             if not (List.isEmpty theMoveWellTryToMake)
             then 
-                forcePrint((st.playerNumber.ToString() + " IS PLAYING THIS: " + (theMoveWellTryToMake).ToString()))
-                debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
+                forcePrint(("\n\n"+st.playerNumber.ToString() + " IS PLAYING THIS: " + (theMoveWellTryToMake).ToString()))
+                debugPrint (sprintf "\n\n Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
                 send cstream (SMPlay (theMoveWellTryToMake))
             else 
                 send cstream (SMChange (MultiSet.toList st.hand)) //TODO : (SMChange list-of-uint)
@@ -694,27 +694,12 @@ module Scrabble =
                 let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), uint32 1)) ms
                 let handRemoveOld = subtract st.hand (listToMultiSet playedTiles)
                 let handAddNew = sum handRemoveOld (listToMultiSet newPieces)
-                let coordMap' = (updateMap st.coordMap ms) 
-                //forcePrint "\n\ncoordmap done"
-                let crossChecks' = updateCrossChecks ms coordMap' st
+                let coordMap' = (updateMap st.coordMap ms)
                 
-                //forcePrint "\n\ncrosschecks vertical words"
-                //Map.fold (fun _ key value -> forcePrint(key.ToString() + value.ToString())) () crossChecks'.checkForVerticalWords
+                let crossChecks' = updateCrossChecks ms coordMap' st              
                 
-               // forcePrint "\n\ncrosschecks horizontal words"
-                //Map.fold (fun _ key value -> forcePrint(key.ToString() + value.ToString())) () crossChecks'.checkForHorizontalWords
-
-                let anchorLists' = updateAnchors coordMap'
-                
-                
-                //forcePrint("anchor done" + anchorLists'.ToString() + "\n\n")
-
-                //orcePrint "\n\nanchorlist vertical"
-                //List.fold (fun _ y -> forcePrint(y.ToString())) () anchorLists'.anchorsForVerticalWords
-
-                //forcePrint "\n\nanchorlist horizontal"
-                //List.fold (fun _ y -> forcePrint(y.ToString())) () anchorLists'.anchorsForHorizontalWords
-
+                let anchorLists' = updateAnchors coordMap'              
+               
                 let st' =   { st with
                                 playerTurn = (getNextPlayerTurn st)
                                 points = st.points + points
@@ -724,14 +709,9 @@ module Scrabble =
                                 crossChecks = crossChecks'
                 }                                        
                 
-                forcePrint("\n\nYour hand: " + st'.hand.ToString())
-                //forcePrint("The board: " + st'.coordMap.ToString())
-                //forcePrint("Your player number: " + st'.playerNumber.ToString() + "\n\n")
-                //forcePrint("Your state: " + st'.ToString() + "\n\n")
-                //forcePrint("Next player: " + st'.playerTurn.ToString() + "\n\n")
+                forcePrint("\n\nYour hand: " + st'.hand.ToString())                
                 forcePrint("\nYour points: " + st'.points.ToString() + "\n\n")
-                //forcePrint("Crosscreck: " + st'.crossCheck.ToString() + "\n\n")
-                forcePrint(" ----- ----- ----- ----- -----")
+                forcePrint("\n ----- ----- ----- ----- ----- \n")
                 
                 aux st'
 
@@ -739,12 +719,17 @@ module Scrabble =
                 (* Successful play by other player. Update your state *)
                 
                 forcePrint("HOT DIGGIDY DAWG" + "\n\n")
-                let coordMap' = (updateMap st.coordMap ms)        
-                forcePrint("HOT DIGGIDY DAWG" + "\n\n")
-                let st' = {st with
-                            playerTurn = (getNextPlayerTurn st);
-                            coordMap = coordMap'
-                           } 
+                let coordMap' = (updateMap st.coordMap ms)
+                let crossChecks' = updateCrossChecks ms coordMap' st              
+                
+                let anchorLists' = updateAnchors coordMap'              
+               
+                let st' =   { st with
+                                playerTurn = (getNextPlayerTurn st)
+                                coordMap = coordMap'
+                                anchorLists = anchorLists'
+                                crossChecks = crossChecks'
+                }               
                 
                 aux st'
 
