@@ -79,7 +79,7 @@ module State =
     
     let mkAnchors h v = {anchorsForHorizontalWords = h; anchorsForVerticalWords =v; }
     let mkState b d np (pn:uint32) pt f p h cm al cc =
-        let tiles = (102-((7) * (int) pn))
+        let tiles = (101-((7) * (int) pn))
         {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossChecks = cc; piecesLeft = tiles  }
 
     let board st         = st.board
@@ -591,7 +591,7 @@ module Scrabble =
                 let coordMap' = (updateMap st.coordMap ms)
                 
                 forcePrint("\n\n There were this many pieces left: "+st.piecesLeft.ToString())
-                let piecesLeft' = st.piecesLeft - ms.Length
+                let piecesLeft' = st.piecesLeft - newPieces.Length
                 forcePrint("\n\nNow there are this many pieces left: "+piecesLeft'.ToString())
                 let crossChecks' = updateCrossChecks ms coordMap' st              
                 
@@ -672,14 +672,14 @@ module Scrabble =
                 let number = if st.piecesLeft >= 7 then 7 else st.piecesLeft
                 
                 let tilesToRemove = (MultiSet.toList st.hand) |> List.take (number)
-                forcePrint("\n\n CHANGE SUCCESS")
-                forcePrint("\n\n REMOVING THESE TILES")
-                List.fold (fun acc x -> forcePrint("\n\n"+x.ToString())) () tilesToRemove
-                let thething = List.fold (fun acc element -> MultiSet.addSingle element acc) MultiSet.empty tilesToRemove
-                let handRemoveOld = subtract st.hand thething
-                forcePrint("\n\n THIS IS MY HAND AFTER REMOVING OLD TILES")
-                List.fold (fun acc x -> forcePrint("\n\n"+x.ToString())) () (toList handRemoveOld)
-                forcePrint("\n\n-------------------------")
+                //forcePrint("\n\n CHANGE SUCCESS")
+                //forcePrint("\n\n REMOVING THESE TILES")
+                //List.fold (fun acc x -> forcePrint("\n\n"+x.ToString())) () tilesToRemove
+                let tilesToRemoveAsMultiSet = List.fold (fun acc element -> MultiSet.addSingle element acc) MultiSet.empty tilesToRemove
+                let handRemoveOld = subtract st.hand tilesToRemoveAsMultiSet
+                //forcePrint("\n\n THIS IS MY HAND AFTER REMOVING OLD TILES")
+                //List.fold (fun acc x -> forcePrint("\n\n"+x.ToString())) () (toList handRemoveOld)
+                //forcePrint("\n\n-------------------------")
                 let handAddNew = sum handRemoveOld (listToMultiSet newTiles)                        
 //                forcePrint("\n\n printing hand after change sucess")
 //                forcePrint("\n\n ---------------------------- ")
@@ -706,11 +706,16 @@ module Scrabble =
                 let st' = {st with playerTurn = (getNextPlayerTurn {st with playerTurn = pid})} //again, making sure that we have the right "current" player stored might be redundant.
                 aux st'
 
-            | RCM a -> failwith (sprintf "RCM not implmented: %A" a)
-        
-        
             //TODO Handle a few of the different Gameplay errors? (see Scrabble.pdf)
-            | RGPE err -> printfn "Gameplay Error:\n%A" err; aux st
+            | RGPE err ->
+                let tilesLeft = List.fold (fun acc error ->
+                    match error with
+                    | GPENotEnoughPieces(changeTiles, availableTiles) ->
+                        debugPrint($"\n\nCorrecting the amount of pieces left from {st.piecesLeft} to {availableTiles}")
+                        acc+(int)availableTiles) 0 err
+                let st' = {st with piecesLeft = tilesLeft}
+                aux st'
+                //printfn "Gameplay Error:\n%A" err; aux st
         
         aux st
 
