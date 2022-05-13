@@ -20,7 +20,7 @@ let spawnMultiples name dict bot =
 
 [<EntryPoint>]
 let main argv =
-    ScrabbleUtil.DebugPrint.toggleDebugPrint true // Change to false to supress debug output
+    ScrabbleUtil.DebugPrint.toggleDebugPrint false // Change to false to supress debug output
 
     System.Console.BackgroundColor <- System.ConsoleColor.White
     System.Console.ForegroundColor <- System.ConsoleColor.Black
@@ -43,7 +43,7 @@ let main argv =
     let handSize   = 7u
     let timeout    = None
     let tiles      = ScrabbleUtil.English.tiles 1u
-    let seed       = Some 15281528 //16 ok //13421 //19 //27 very nice //17 bad //14 bad - now good //1337 good //999 good //13498 good //1020 good
+    let seed       = None 
     let port       = 13001
 
     let dictAPI =
@@ -63,9 +63,9 @@ let main argv =
     //    List.iter (fun str -> ScrabbleUtil.DebugPrint.debugPrint (sprintf "%s\n" str)) incorrectWords
         
     // Uncomment this line to call your client
-    let players    = [("ScwabbleBot", dictionary, Scwabble.Scrabble.startGame)]
+    //let players    = [("ScwabbleBot", dictionary, Scwabble.Scrabble.startGame)]
     //let players = spawnMultiples "ScwabbleBot" dictionary Scwabble.Scrabble.startGame 2
-    //let players    = [("ScwabbleBot", dictionary, Scwabble.Scrabble.startGame); ("OxyphenButazone", dictionary, Oxyphenbutazone.Scrabble.startGame)]
+    let players    = [("ScwabbleBot", dictionary, Scwabble.Scrabble.startGame); ("OxyphenButazone", dictionary, Oxyphenbutazone.Scrabble.startGame)]
     // let players = spawnMultiples "OxyphenButazone" dictionary Oxyphenbutazone.Scrabble.startGame 2
         
 

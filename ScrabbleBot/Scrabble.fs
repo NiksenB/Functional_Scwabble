@@ -69,6 +69,7 @@ module State =
         anchorLists   : anchors
         crossChecks   : crossChecks
         piecesLeft    : int
+        haveJustSwappedTiles : bool
     }
     
     
@@ -80,7 +81,7 @@ module State =
     let mkAnchors h v = {anchorsForHorizontalWords = h; anchorsForVerticalWords =v; }
     let mkState b d np (pn:uint32) pt f p h cm al cc =
         let tiles = (102-((7) * (int) pn))
-        {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossChecks = cc; piecesLeft = tiles  }
+        {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossChecks = cc; piecesLeft = tiles; haveJustSwappedTiles = false;  }
 
     let board st         = st.board
     let dict st          = st.dict
@@ -575,13 +576,14 @@ module Scrabble =
                         //will never print :(
                         debugPrint("\n\nI think that pieces left is negative... so ill try to change pieces and see what the response is")
                         send cstream (SMChange (List.take 7 (toList st.hand)))
-                    else
+                    else                       
+                        if (st.haveJustSwappedTiles )
+                        then send cstream (SMPass)
+                        else
+                            let tilesToRemove = chooseWorstPieces st.hand st.piecesLeft pieces                    
                         
-                        
-                        let tilesToRemove = chooseWorstPieces st.hand st.piecesLeft pieces                    
-                        
-                        debugPrint($"\n\nTrying to swap {tilesToRemove.Length.ToString()} tiles")
-                        send cstream (SMChange tilesToRemove)
+                            debugPrint($"\n\nTrying to swap {tilesToRemove.Length.ToString()} tiles")
+                            send cstream (SMChange tilesToRemove)
                     
                 
                 
@@ -596,20 +598,10 @@ module Scrabble =
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
                 
                 let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), uint32 1)) ms
-                forcePrint("\n\nI played this many tiles: "+ playedTiles.Length.ToString())
-                forcePrint("\n\n I am now recieving this many tiles from the server " + newPieces.Length.ToString())
-
                 let handRemoveOld = subtract st.hand (listToMultiSet playedTiles)
-                forcePrint("\n\nMy hand size after removing the played tiles "+ (toList handRemoveOld).Length.ToString())
-
                 let handAddNew = sum handRemoveOld (listToMultiSet newPieces)
-                forcePrint("\n\nMy hand size after adding new tiles "+ (toList handAddNew).Length.ToString())
-
                 let coordMap' = (updateMap st.coordMap ms)
-                
-                forcePrint("\n\n There were this many pieces left: "+st.piecesLeft.ToString())
                 let piecesLeft' = st.piecesLeft - newPieces.Length
-                forcePrint("\n\nNow there are this many pieces left: "+piecesLeft'.ToString())
                 let crossChecks' = updateCrossChecks ms coordMap' st              
                 
                 let anchorLists' = updateAnchors coordMap'              
@@ -622,6 +614,7 @@ module Scrabble =
                                 anchorLists = anchorLists'
                                 crossChecks = crossChecks'
                                 piecesLeft = piecesLeft'
+                                haveJustSwappedTiles = false
                 }                                        
                 
                 debugPrint("\n\nYour hand: " + st'.hand.ToString())                
@@ -696,7 +689,10 @@ module Scrabble =
 
                 
                 let st' = {st with
-                            hand = handAddNew }
+                            hand = handAddNew
+                            haveJustSwappedTiles = true
+                             
+                            }
                 aux st'
                
 
