@@ -372,86 +372,9 @@ module Scrabble =
             ) result hand
     
   
-    let rec findWord coord (finishedWords : ((coord * (uint32 * (char * int))) list) list ) (currentAddedTiles : ((coord * (uint32 * (char * int))) list)) (st : State.state) (dict : Dict) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
-       
-        let isCoordOccupied = Map.containsKey coord st.coordMap
-        
-        if not isCoordOccupied
-        then
-            if isEmpty hand
-            then
-                (finishedWords, list.Empty)
-            else
-                fold (fun (f, s) id _ ->
-                    let tile = Map.find id pieces
-                    Set.fold (fun accWithChar c ->
-                        let ch' = fst c
-                        if Map.containsKey coord crossCheck
-                        then
-                            if Set.contains ch' (Map.find coord crossCheck)
-                            then
-                                let dOption = step ch' dict
-                                if dOption.IsSome
-                                then
-                                    let currentWord' = s@[(coord, (id, c))]
-                                    let dictValue = dOption.Value
-                                    if fst dictValue && not(Map.containsKey (coordFun coord) st.coordMap)
-                                    then                                        
-                                        let finishedWords' = finishedWords@[currentWord']
-                                        let amputatedHand = removeSingle id hand
-                                        let (f', _) = findWord (coordFun coord) finishedWords' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
-                                        (f', s)
-                                    else
-                                        let amputatedHand = removeSingle id hand
-                                        let (f', _) = findWord (coordFun coord) finishedWords currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
-                                        (f', s)
-                                else
-                                    (f,s)
-                            else
-                                (f,s)
-                        else 
-                            let dOption = step ch' dict
-                            if dOption.IsSome
-                            then
-                                let currentWord' = s@[(coord, (id, c))]
-                                let dictValue = dOption.Value
-                                if fst dictValue && not(Map.containsKey (coordFun coord) st.coordMap)
-                                then
-                                    let finishedWords' = finishedWords@[currentWord']
-                                    let amputatedHand = removeSingle id hand
-                                    let (f', _) = findWord (coordFun coord) finishedWords' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
-                                    (f', s)
-                                else
-                                    let amputatedHand = removeSingle id hand
-                                    let (f', _) = findWord (coordFun coord) finishedWords currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
-                                    (f', s)
-                            else
-                                (f,currentAddedTiles)
-                        ) (f,s) tile
-                ) (finishedWords, currentAddedTiles) hand
-        else
-            //der er optaget på denne plads, lad os steppe hvor vi er
-            let (_,(ch,_)) = Map.find coord st.coordMap 
-            let dOption = step ch dict
-            if dOption.IsSome
-            then
-                if fst dOption.Value && not(Map.containsKey (coordFun coord) st.coordMap)
-                then
-                    if not (List.isEmpty currentAddedTiles)
-                    then
-                        let finishedWords' = finishedWords@[currentAddedTiles]
-                        findWord (coordFun coord) finishedWords' currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
-                    else     
-                        findWord (coordFun coord) finishedWords currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
-                else
-                      findWord (coordFun coord) finishedWords currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
+   
 
-            else
-                
-               
-                (finishedWords, list.Empty)
-
-    let rec findLongestWordHeuristic coord (bestWord : ((coord * (uint32 * (char * int))) list) ) (currentAddedTiles : ((coord * (uint32 * (char * int))) list)) (st : State.state) (dict : Dict) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
+    let rec findAllPossibleWords coord (bestWord : ((coord * (uint32 * (char * int))) list) list) (currentAddedTiles : ((coord * (uint32 * (char * int))) list)) (st : State.state) (dict : Dict) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
        
         let isCoordOccupied = Map.containsKey coord st.coordMap
         
@@ -478,17 +401,14 @@ module Scrabble =
                                     then
                                         
                                         
-                                        let bestWord' =
-                                            if (bestWord.Length >= currentWord'.Length)
-                                            then bestWord
-                                            else currentWord'
+                                        let bestWord' = [currentWord']@bestWord
                                         
                                         let amputatedHand = removeSingle id hand
-                                        let (f', _) = findLongestWordHeuristic (coordFun coord) bestWord' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                        let (f', _) = findAllPossibleWords (coordFun coord) bestWord' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
                                         (f', s)
                                     else
                                         let amputatedHand = removeSingle id hand
-                                        let (f', _) = findLongestWordHeuristic (coordFun coord) bestWord currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                        let (f', _) = findAllPossibleWords (coordFun coord) bestWord currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
                                         (f', s)
                                 else
                                     (f,s)
@@ -503,16 +423,13 @@ module Scrabble =
                                 if fst dictValue && not(Map.containsKey (coordFun coord) st.coordMap)
                                 then
                                     
-                                    let bestWord' =
-                                            if (bestWord.Length >= currentWord'.Length)
-                                            then bestWord
-                                            else currentWord'
+                                    let bestWord' = [currentWord']@bestWord
                                     let amputatedHand = removeSingle id hand
-                                    let (f', _) = findLongestWordHeuristic  (coordFun coord) bestWord' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                    let (f', _) = findAllPossibleWords  (coordFun coord) bestWord' currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
                                     (f', s)
                                 else
                                     let amputatedHand = removeSingle id hand
-                                    let (f', _) = findLongestWordHeuristic (coordFun coord) bestWord currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
+                                    let (f', _) = findAllPossibleWords (coordFun coord) bestWord currentWord' st (snd dictValue) amputatedHand pieces coordFun crossCheck
                                     (f', s)
                             else
                                 (f,currentAddedTiles)
@@ -528,100 +445,55 @@ module Scrabble =
                 then
                     if not (List.isEmpty currentAddedTiles) 
                     then
-                        let bestWord' =
-                            if (bestWord.Length >= currentAddedTiles.Length)
-                            then bestWord
-                            else currentAddedTiles
+                        let bestWord' = [currentAddedTiles]@bestWord
                          
                         
-                        findLongestWordHeuristic (coordFun coord) bestWord' currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
+                        findAllPossibleWords (coordFun coord) bestWord' currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
                     else     
-                        findLongestWordHeuristic (coordFun coord) bestWord currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
+                        findAllPossibleWords (coordFun coord) bestWord currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
                 else
-                      findLongestWordHeuristic (coordFun coord) bestWord currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
+                      findAllPossibleWords (coordFun coord) bestWord currentAddedTiles st (snd dOption.Value) hand pieces coordFun crossCheck
 
             else
                 
                 (bestWord, list.Empty)    
     
-    let findOneMove (st : State.state) pieces =
+    let findLongestWordInList (words : ((coord * (uint32 * (char * int))) list) list)  =
+        List.fold (fun (acc : (coord * (uint32 * (char * int))) list) (newWord: (coord * (uint32 * (char * int))) list) ->
+            if newWord.Length > acc.Length then newWord else acc) List.Empty words
+                    
+    let findMoves (st : State.state) pieces =
         if List.isEmpty (st.anchorLists.anchorsForVerticalWords) && List.isEmpty (st.anchorLists.anchorsForHorizontalWords)
         then 
             let x = findFirstWord st.hand st.dict pieces (false, List.Empty)
             forcePrint("findFirstWord resulted in: " + x.ToString() + "\n")
             snd x
-        else 
-            
-            //horizontal
-            let horizontalWords = 
-                List.fold (fun acc (anchorPoint,(b,(c,p)))  ->
-                   if List.isEmpty acc
-                   then
-                       let dict' = step c st.dict
-                       
-                       fst (findWord (getNextRightCoord anchorPoint) List.Empty List.Empty st (snd dict'.Value) st.hand pieces getNextRightCoord st.crossChecks.checkForHorizontalWords)
-                   else
-                       acc
-                ) List.Empty st.anchorLists.anchorsForHorizontalWords
-
-            if (not (List.isEmpty horizontalWords))
-            then
-                forcePrint ("Im gonna play this one horizontally :) " + (horizontalWords[horizontalWords.Length-1]).ToString())
-                horizontalWords[horizontalWords.Length-1]
-            else 
-                let verticalWords = 
-                    List.fold (fun acc (anchorPoint,(b,(c,p)))  -> 
-                        if List.isEmpty acc 
-                        then
-                            let dict' = step c st.dict
-                            fst (findWord (getNextDownCoord anchorPoint) List.Empty List.Empty st (snd dict'.Value) st.hand pieces getNextDownCoord st.crossChecks.checkForVerticalWords)
-                        else
-                            acc
-                    ) List.Empty st.anchorLists.anchorsForVerticalWords
-                if (not (List.isEmpty verticalWords))
-                then
-                    forcePrint ("im gonna play this one vertically :) " + (verticalWords[verticalWords.Length-1]).ToString())
-                    verticalWords[verticalWords.Length-1]
-                else
-                    
-                    forcePrint "make it clap - i find no word im bad :("
-                    verticalWords[verticalWords.Length-1]
-                    
-    let findOneMoveLongestWordMaybe (st : State.state) pieces =
-        if List.isEmpty (st.anchorLists.anchorsForVerticalWords) && List.isEmpty (st.anchorLists.anchorsForHorizontalWords)
-        then 
-            let x = findFirstWord st.hand st.dict pieces (false, List.Empty)
-            forcePrint("findFirstWord resulted in: " + x.ToString() + "\n")
-            snd x
-        else
-            
+        else            
             
             //horizontal
             let horizontalWords = 
                 List.fold (fun acc (anchorPoint,(b,(c,p)))  ->                   
-                       let newWord = fst (findLongestWordHeuristic  anchorPoint acc List.Empty st st.dict st.hand pieces getNextRightCoord st.crossChecks.checkForHorizontalWords)
-                       if newWord.Length > acc.Length
-                       then newWord
-                       else acc
+                       fst (findAllPossibleWords  anchorPoint acc List.Empty st st.dict st.hand pieces getNextRightCoord st.crossChecks.checkForHorizontalWords)
+                       
                 ) List.Empty st.anchorLists.anchorsForHorizontalWords
 
             if (not (List.isEmpty horizontalWords))
             then
-                forcePrint ("Im gonna play this one horizontally :) " + (horizontalWords).ToString())
-                horizontalWords
+                let word = findLongestWordInList horizontalWords
+                forcePrint ("Im gonna play this one horizontally :) " + word.ToString())
+                word
             else 
                 let verticalWords = 
                     List.fold (fun acc (anchorPoint,(b,(c,p)))  ->
-                       let dict' = step c st.dict
-                       let newWord = fst (findLongestWordHeuristic (getNextDownCoord anchorPoint) acc List.Empty st (snd dict'.Value) st.hand pieces getNextDownCoord st.crossChecks.checkForVerticalWords)
-                       if newWord.Length > acc.Length
-                       then newWord
-                       else acc
+                       
+                        fst (findAllPossibleWords anchorPoint acc List.Empty st st.dict st.hand pieces getNextDownCoord st.crossChecks.checkForVerticalWords)
+                       
                     ) List.Empty st.anchorLists.anchorsForVerticalWords
                 if (not (List.isEmpty verticalWords))
                 then
-                    forcePrint ("im gonna play this one vertically :) " + (verticalWords).ToString())
-                    verticalWords
+                    let word = findLongestWordInList verticalWords
+                    forcePrint ("im gonna play this one vertically :) " + (word).ToString())
+                    word
                 else 
                     forcePrint "make it clap - i find no word im bad :("
                     List.Empty
@@ -660,12 +532,10 @@ module Scrabble =
 
         let rec aux (st : State.state) =
             
-            
-            
             if st.playerTurn = st.playerNumber
             then
                 Print.printHand pieces (State.hand st)
-                let theMoveWellTryToMake : list<coord * (uint32 * (char * int))> = findOneMoveLongestWordMaybe st pieces
+                let theMoveWellTryToMake : list<coord * (uint32 * (char * int))> = findMoves st pieces
                 let x = List.fold (fun a b -> forcePrint("TILE : "+b.ToString())) () theMoveWellTryToMake
                 if not (List.isEmpty theMoveWellTryToMake)
                 then 
