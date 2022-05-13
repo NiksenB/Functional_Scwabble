@@ -30,7 +30,7 @@ module RegEx =
                 | Regex pattern [x; y; id; c; p] ->
                     ((x |> int, y |> int), (id |> uint32, (c |> char, p |> int)))
                 | _ ->
-                    forcePrint("lol shud never happn")
+                    debugPrint("lol shud never happn")
                     failwith "Failed (should never happen)") |>
         Seq.toList
 
@@ -38,7 +38,7 @@ module RegEx =
 
     let printHand pieces hand =
         hand |>
-        fold (fun _ x i -> forcePrint (sprintf "%d -> (%A, %d)\n" x (Map.find x pieces) i)) ()
+        fold (fun _ x i -> debugPrint (sprintf "%d -> (%A, %d)\n" x (Map.find x pieces) i)) ()
 
 module State = 
     // Make sure to keep your state localised in this module. It makes your life a whole lot easier.
@@ -79,7 +79,7 @@ module State =
     
     let mkAnchors h v = {anchorsForHorizontalWords = h; anchorsForVerticalWords =v; }
     let mkState b d np (pn:uint32) pt f p h cm al cc =
-        let tiles = (101-((7) * (int) pn))
+        let tiles = (102-((7) * (int) pn))
         {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossChecks = cc; piecesLeft = tiles  }
 
     let board st         = st.board
@@ -466,7 +466,7 @@ module Scrabble =
         if List.isEmpty (st.anchorLists.anchorsForVerticalWords) && List.isEmpty (st.anchorLists.anchorsForHorizontalWords)
         then 
             let x = findFirstWord st.hand st.dict pieces (false, List.Empty)
-            forcePrint("findFirstWord resulted in: " + x.ToString() + "\n")
+            debugPrint("findFirstWord resulted in: " + x.ToString() + "\n")
             snd x
         else            
             
@@ -480,7 +480,8 @@ module Scrabble =
             if (not (List.isEmpty horizontalWords))
             then
                 let word = findLongestWordInList horizontalWords
-                forcePrint ("Im gonna play this one horizontally :) " + word.ToString())
+                debugPrint("\n\n amount of words : " + horizontalWords.Length.ToString())
+                debugPrint ("Im gonna play this one horizontally :) " + word.ToString())
                 word
             else 
                 let verticalWords = 
@@ -492,10 +493,12 @@ module Scrabble =
                 if (not (List.isEmpty verticalWords))
                 then
                     let word = findLongestWordInList verticalWords
-                    forcePrint ("im gonna play this one vertically :) " + (word).ToString())
+                    
+                    debugPrint("\n\n amount of words : " + verticalWords.Length.ToString())
+                    debugPrint ("im gonna play this one vertically :) " + (word).ToString())
                     word
                 else 
-                    forcePrint "make it clap - i find no word im bad :("
+                    debugPrint "make it clap - i find no word im bad :("
                     List.Empty
         
            
@@ -509,7 +512,7 @@ module Scrabble =
             
             if next.Equals pt
             then
-                forcePrint("im forfeit mand")
+                debugPrint("im forfeit mand")
                 failwith "It seems all other players have forfeited."
             else 
                 if np >= next && not(Set.contains next f) //the next player is existing and active
@@ -526,6 +529,25 @@ module Scrabble =
         
     let updateMap oldmap message= List.fold (fun newmap (coord, brik) -> Map.add coord brik newmap) oldmap message
     
+    let chooseWorstPieces hand (amountToRemove: int) (pieces : Map<uint32,tile>)=     
+        
+        let rec recfold handSoFar (acc : uint32 List)=
+            let listhand = MultiSet.toList handSoFar
+            match (acc.Length) with
+            | bleh when bleh = amountToRemove -> acc
+            |_->
+                let addToAcc =
+                    List.fold (fun (i,p) id ->                    
+                    let tile = (Map.find id pieces)
+                    let point = snd ((Set.toList tile)[0])
+                    if point> p then (id, point) else (i,p)
+                    )(uint32 0,0) listhand
+                let newHand = (MultiSet.removeSingle (fst addToAcc) handSoFar)
+                let newAcc = (fst addToAcc) :: acc
+                recfold newHand newAcc
+        recfold hand list.Empty
+               
+    
     let playGame cstream pieces (st : State.state) =
 
         let rec aux (st : State.state) =
@@ -534,10 +556,9 @@ module Scrabble =
             then
                 Print.printHand pieces (State.hand st)
                 let theMoveWellTryToMake : list<coord * (uint32 * (char * int))> = findMoves st pieces
-                let x = List.fold (fun a b -> forcePrint("TILE : "+b.ToString())) () theMoveWellTryToMake
                 if not (List.isEmpty theMoveWellTryToMake)
                 then 
-                    forcePrint((st.playerNumber.ToString() + " IS PLAYING THIS: " + (theMoveWellTryToMake).ToString()))
+                    debugPrint((st.playerNumber.ToString() + " IS PLAYING THIS: " + (theMoveWellTryToMake).ToString()))
                     debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
                     send cstream (SMPlay (theMoveWellTryToMake))
                 else
@@ -547,23 +568,19 @@ module Scrabble =
                         send cstream (SMChange (MultiSet.toList st.hand))
                     else if st.piecesLeft = 0
                     then
-                        forcePrint("\n\nThere are no more tiles to change and i cant find any moves, so thats pretty bad")
+                        debugPrint("\n\nThere are no more tiles to change and i cant find any moves, so thats pretty bad")
                         send cstream (SMPass)
                     else if st.piecesLeft < 0
                     then
                         //will never print :(
-                        forcePrint("\n\nI think that pieces left is negative... so ill try to change pieces and see what the response is")
+                        debugPrint("\n\nI think that pieces left is negative... so ill try to change pieces and see what the response is")
                         send cstream (SMChange (List.take 7 (toList st.hand)))
                     else
-                        let listhand = MultiSet.toList st.hand
-                        let number = st.piecesLeft
-                        debugPrint($"\n\nGonna change {number} pieces")
-
-                        forcePrint("\n\n here is number   " + number.ToString())
                         
-                        let tilesToRemove = List.take number listhand                        
                         
-                        forcePrint($"\n\nTrying to swap {tilesToRemove.Length.ToString()} tiles")
+                        let tilesToRemove = chooseWorstPieces st.hand st.piecesLeft pieces                    
+                        
+                        debugPrint($"\n\nTrying to swap {tilesToRemove.Length.ToString()} tiles")
                         send cstream (SMChange tilesToRemove)
                     
                 
@@ -607,16 +624,16 @@ module Scrabble =
                                 piecesLeft = piecesLeft'
                 }                                        
                 
-                forcePrint("\n\nYour hand: " + st'.hand.ToString())                
-                forcePrint("\nYour points: " + st'.points.ToString() + "\n\n")
-                forcePrint("\n ----- ----- ----- ----- ----- \n")
+                debugPrint("\n\nYour hand: " + st'.hand.ToString())                
+                debugPrint("\nYour points: " + st'.points.ToString() + "\n\n")
+                debugPrint("\n ----- ----- ----- ----- ----- \n")
                 
                 aux st'
 
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
                 
-                forcePrint("HOT DIGGIDY DAWG" + "\n\n")
+                debugPrint("Other player has played a move" + "\n\n")
                 let coordMap' = (updateMap st.coordMap ms)
                 let crossChecks' = updateCrossChecks ms coordMap' st              
                 
@@ -651,10 +668,10 @@ module Scrabble =
                 aux st'
 
             | RCM (CMGameOver pointList) ->
-                forcePrint("\nRemaining tiles: " + st.piecesLeft.ToString() + "\n")
+                debugPrint("\nRemaining tiles: " + st.piecesLeft.ToString() + "\n")
                 for playerResults in pointList
                     do
-                        forcePrint("Player " + (fst playerResults).ToString() + ": " + (snd playerResults).ToString() + "points.\n")
+                        debugPrint("Player " + (fst playerResults).ToString() + ": " + (snd playerResults).ToString() + "points.\n")
             
             | RCM (CMForfeit(pid)) ->
                 //A player forfeits
@@ -670,21 +687,12 @@ module Scrabble =
             | RCM (CMChangeSuccess(newTiles)) ->
                 //You changed your tiles      
                 let number = if st.piecesLeft >= 7 then 7 else st.piecesLeft
-                
-                let tilesToRemove = (MultiSet.toList st.hand) |> List.take (number)
-                //forcePrint("\n\n CHANGE SUCCESS")
-                //forcePrint("\n\n REMOVING THESE TILES")
-                //List.fold (fun acc x -> forcePrint("\n\n"+x.ToString())) () tilesToRemove
+                let tilesToRemove = chooseWorstPieces st.hand number pieces
                 let tilesToRemoveAsMultiSet = List.fold (fun acc element -> MultiSet.addSingle element acc) MultiSet.empty tilesToRemove
                 let handRemoveOld = subtract st.hand tilesToRemoveAsMultiSet
-                //forcePrint("\n\n THIS IS MY HAND AFTER REMOVING OLD TILES")
-                //List.fold (fun acc x -> forcePrint("\n\n"+x.ToString())) () (toList handRemoveOld)
-                //forcePrint("\n\n-------------------------")
+                
                 let handAddNew = sum handRemoveOld (listToMultiSet newTiles)                        
-//                forcePrint("\n\n printing hand after change sucess")
-//                forcePrint("\n\n ---------------------------- ")
-//                Print.printHand pieces (handAddNew)
-//                forcePrint("\n\n ---------------------------- ")
+
 
                 
                 let st' = {st with
@@ -694,7 +702,7 @@ module Scrabble =
 
             | RCM (CMChange (pid, numTiles)) ->
                 //Some other player changed their hand
-                forcePrint("Player " + pid.ToString() + " changed " + numTiles.ToString() + " tiles.\n\n")
+                debugPrint("Player " + pid.ToString() + " changed " + numTiles.ToString() + " tiles.\n\n")
                 let st' = 
                     { st with 
                         playerTurn = getNextPlayerTurn st;
