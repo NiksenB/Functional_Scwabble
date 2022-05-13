@@ -78,8 +78,9 @@ module State =
     let mkCrossChekcs h v = {checkForHorizontalWords = h; checkForVerticalWords = v;}
     
     let mkAnchors h v = {anchorsForHorizontalWords = h; anchorsForVerticalWords =v; }
-    let mkState b d np pn pt f p h cm al cc pl = 
-        {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossChecks = cc; piecesLeft = pl }
+    let mkState b d np (pn:uint32) pt f p h cm al cc =
+        let tiles = (97-((7) * (int) pn))
+        {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossChecks = cc; piecesLeft = tiles  }
 
     let board st         = st.board
     let dict st          = st.dict
@@ -660,6 +661,7 @@ module Scrabble =
         let rec aux (st : State.state) =
             
             
+            
             if st.playerTurn = st.playerNumber
             then
                 Print.printHand pieces (State.hand st)
@@ -678,6 +680,7 @@ module Scrabble =
                         
                         let listhand = MultiSet.toList st.hand
                         let number = st.piecesLeft
+                        forcePrint("\n\n here is number   " + number.ToString())
                         
                         let tilesToRemove = List.take number listhand                        
                         
@@ -836,9 +839,10 @@ module Scrabble =
         let board = Parser.mkBoard boardP
                 
         let handSet = List.fold (fun acc (x, k) -> add x k acc) empty hand
+        
+        
 
-
-        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (State.mkAnchors List.empty List.empty) (State.mkCrossChekcs Map.empty Map.empty) 95) 
+        fun () -> playGame cstream tiles (State.mkState board dict numPlayers playerNumber playerTurn Set.empty 0 handSet Map.empty (State.mkAnchors List.empty List.empty) (State.mkCrossChekcs Map.empty Map.empty)) 
     
     
     
