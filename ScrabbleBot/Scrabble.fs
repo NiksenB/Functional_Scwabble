@@ -372,9 +372,6 @@ module Scrabble =
                 ) acc tile
             ) result hand
     
-  
-   
-
     let rec findAllPossibleWords coord (bestWord : ((coord * (uint32 * (char * int))) list) list) (currentAddedTiles : ((coord * (uint32 * (char * int))) list)) (st : State.state) (dict : Dict) (hand : MultiSet<uint32>) (pieces : Map<uint32, tile>) coordFun crossCheck =
        
         let isCoordOccupied = Map.containsKey coord st.coordMap
@@ -465,9 +462,9 @@ module Scrabble =
                     
     let findMoves (st : State.state) pieces =
         if List.isEmpty (st.anchorLists.anchorsForVerticalWords) && List.isEmpty (st.anchorLists.anchorsForHorizontalWords)
-        then 
+        then
             let x = findFirstWord st.hand st.dict pieces (false, List.Empty)
-            debugPrint("findFirstWord resulted in: " + x.ToString() + "\n")
+            debugPrint("\n\nfindFirstWord resulted in: " + x.ToString() + "\n")
             snd x
         else            
             
@@ -500,8 +497,7 @@ module Scrabble =
                     word
                 else 
                     debugPrint "make it clap - i find no word im bad :("
-                    List.Empty
-        
+                    List.Empty    
            
     let listToMultiSet h = List.fold (fun acc (x, k) -> add x k acc) empty h
 
@@ -554,8 +550,10 @@ module Scrabble =
         let rec aux (st : State.state) =
             
             if st.playerTurn = st.playerNumber
+            
             then
-                Print.printHand pieces (State.hand st)
+                debugPrint("\n\n Player turn  : " + (string)st.playerTurn + " \n\n")
+                //Print.printHand pieces (State.hand st)
                 let theMoveWellTryToMake : list<coord * (uint32 * (char * int))> = findMoves st pieces
                 if not (List.isEmpty theMoveWellTryToMake)
                 then 
@@ -691,6 +689,7 @@ module Scrabble =
                 let st' = {st with
                             hand = handAddNew
                             haveJustSwappedTiles = true
+                            playerTurn = getNextPlayerTurn st
                              
                             }
                 aux st'
@@ -701,7 +700,7 @@ module Scrabble =
                 debugPrint("Player " + pid.ToString() + " changed " + numTiles.ToString() + " tiles.\n\n")
                 let st' = 
                     { st with 
-                        playerTurn = getNextPlayerTurn st;
+                        playerTurn = getNextPlayerTurn st
                     }
                 aux st'
 
