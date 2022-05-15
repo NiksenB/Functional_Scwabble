@@ -612,6 +612,7 @@ module Scrabble =
                 let handAddNew = sum handRemoveOld (listToMultiSet newPieces)
                 debugPrint("\n\n New Hand is   + \n")
                 Print.printHand pieces handAddNew
+                
                 let coordMap' = (updateMap st.coordMap ms)
                 let piecesLeft' =
                     if st.piecesLeft - (int)newPicesAmount <= 0
