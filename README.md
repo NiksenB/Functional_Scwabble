@@ -12,4 +12,4 @@
 - Package id: Scwabble
 - Assembly name: Scwabble
 - Product: ScwabbleBot
-- Sebastian H. (seho), Mai O. (maod), Nikoline B. (nibu)
+- Marcus H. (seho), Mai O. (maod), Nikoline B. (nibu)
