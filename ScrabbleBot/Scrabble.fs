@@ -508,30 +508,26 @@ module Scrabble =
                        
                 ) List.Empty st.anchorLists.anchorsForHorizontalWords
 
-            if (not (List.isEmpty horizontalWords))
+            let verticalWords = 
+                List.fold (fun acc (anchorPoint,(b,(c,p)))  ->
+                   
+                    fst (findAllPossibleWords anchorPoint acc List.Empty st st.dict st.hand pieces getNextDownCoord st.crossChecks.checkForVerticalWords)
+                   
+                ) List.Empty st.anchorLists.anchorsForVerticalWords
+            
+            let allWords = horizontalWords@verticalWords
+                
+            if (not (List.isEmpty allWords))
             then
-                let word = findBestPointWordLite horizontalWords
-                debugPrint("\n\n amount of words : " + horizontalWords.Length.ToString())
-                debugPrint ("Im gonna play this one horizontally :) " + word.ToString())
+                let word = findBestPointWordLite allWords
+                
+                debugPrint("\n\n amount of words : " + allWords.Length.ToString())
+                debugPrint ("im gonna play this one :) " + (word).ToString())
                 word
             else 
-                let verticalWords = 
-                    List.fold (fun acc (anchorPoint,(b,(c,p)))  ->
-                       
-                        fst (findAllPossibleWords anchorPoint acc List.Empty st st.dict st.hand pieces getNextDownCoord st.crossChecks.checkForVerticalWords)
-                       
-                    ) List.Empty st.anchorLists.anchorsForVerticalWords
-                if (not (List.isEmpty verticalWords))
-                then
-                    let word = findBestPointWordLite verticalWords
-                    
-                    debugPrint("\n\n amount of words : " + verticalWords.Length.ToString())
-                    debugPrint ("im gonna play this one vertically :) " + (word).ToString())
-                    word
-                else 
-                    debugPrint "I cannot find a word"
-                    List.Empty    
-           
+                debugPrint "make it clap - i find no word im bad :("
+                List.Empty    
+            
     let listToMultiSet h = List.fold (fun acc (element, amount) -> add element amount acc) empty h
 
     let rec playerTurnHelper (np : uint32) (next : uint32) (pt : uint32) (f : uint32 Set)  =
