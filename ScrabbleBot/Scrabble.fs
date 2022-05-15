@@ -498,7 +498,7 @@ module Scrabble =
                     debugPrint "make it clap - i find no word im bad :("
                     List.Empty    
            
-    let listToMultiSet h = List.fold (fun acc (x, k) -> add x k acc) empty h
+    let listToMultiSet h = List.fold (fun acc (element, amount) -> add element amount acc) empty h
 
     let rec playerTurnHelper (np : uint32) (next : uint32) (pt : uint32) (f : uint32 Set)  =
         if np.Equals 1u
@@ -586,7 +586,6 @@ module Scrabble =
                         then send cstream (SMPass)
                         else
                             let tilesToRemove = chooseWorstPieces st.hand (remainingTilesInPile st) pieces                    
-                        
                             debugPrint($"\n\nTrying to swap {tilesToRemove.Length.ToString()} tiles")
                             send cstream (SMChange tilesToRemove)
                     
@@ -605,21 +604,28 @@ module Scrabble =
                 let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), uint32 1)) ms
                 let handRemoveOld = subtract st.hand (listToMultiSet playedTiles)
                 debugPrint("\n\n Old hand without eye is + \n")
-                Print.printHand pieces handRemoveOld
+                //Print.printHand pieces handRemoveOld
                 
                 debugPrint("\n\n New tiles are  + \n")
-                let newPicesAmount = MultiSet.size (listToMultiSet newPieces)
-                Print.printHand pieces ((listToMultiSet newPieces))
+                let newPiecesAmount = MultiSet.size (listToMultiSet newPieces)
+                //Print.printHand pieces ((listToMultiSet newPieces))
                 
                 let handAddNew = sum handRemoveOld (listToMultiSet newPieces)
                 debugPrint("\n\n New Hand is   + \n")
-                Print.printHand pieces handAddNew
+                //Print.printHand pieces handAddNew
                 
                 let coordMap' = (updateMap st.coordMap ms)
                 let crossChecks' = updateCrossChecks ms coordMap' st              
                 
+                forcePrint("\n\n -----")
+                forcePrint($"\n\n{st.piecesLeft} så mange brikker tilbage i puljen")
+                forcePrint($"\n\nNu har jeg fået {newPiecesAmount} brikker af robotten, efter at jeg spillede {ms.Length.ToString()} brikker")
+                forcePrint($"\n\n{piecesLeft'} er altså den nye pulje")
+                
+                debugPrint("\n\n -----")
+                
                 let anchorLists' = updateAnchors coordMap'              
-                if MultiSet.size handAddNew > (uint)7 then debugPrint("\n\nhand now larger than 7 ")
+                if MultiSet.size handAddNew > 7u then debugPrint("\n\nhand now larger than 7 ")
                 let st' =   { st with
                                 playerTurn = (getNextPlayerTurn st)
                                 points = st.points + points
