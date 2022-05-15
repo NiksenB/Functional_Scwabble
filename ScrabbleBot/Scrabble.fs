@@ -31,7 +31,7 @@ module RegEx =
                 | Regex pattern [x; y; id; c; p] ->
                     ((x |> int, y |> int), (id |> uint32, (c |> char, p |> int)))
                 | _ ->
-                    debugPrint("lol shud never happn")
+                    debugPrint("\n\nThis Should never happen")
                     failwith "Failed (should never happen)") |>
         Seq.toList
 
