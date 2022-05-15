@@ -69,7 +69,7 @@ module State =
         coordMap      : Map<coord, uint32 * (char * int)>
         anchorLists   : anchors
         crossChecks   : crossChecks
-        piecesLeft    : int
+        piecesLeft    : uint32
         haveJustSwappedTiles : bool
     }
     
@@ -81,7 +81,7 @@ module State =
     
     let mkAnchors h v = {anchorsForHorizontalWords = h; anchorsForVerticalWords =v; }
     let mkState b d np (pn:uint32) pt f p h cm al cc =
-        let tiles = (100-((7) * (int) np))
+        let tiles = (100u-((7u) * np))
         {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossChecks = cc; piecesLeft = tiles; haveJustSwappedTiles = false;  }
 
     let board st         = st.board
@@ -528,11 +528,11 @@ module Scrabble =
         
     let updateMap oldmap message= List.fold (fun newmap (coord, brik) -> Map.add coord brik newmap) oldmap message
     
-    let chooseWorstPieces hand (amountToRemove: int) (pieces : Map<uint32,tile>)=     
+    let chooseWorstPieces hand (amountToRemove: uint32) (pieces : Map<uint32,tile>)=     
         
         let rec recfold handSoFar (acc : uint32 List)=
             let listhand = MultiSet.toList handSoFar
-            match (acc.Length) with
+            match (uint32) (acc.Length) with
             | bleh when bleh = amountToRemove -> acc
             |_->
                 let addToAcc =
@@ -562,19 +562,19 @@ module Scrabble =
                     debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
                     send cstream (SMPlay (theMoveWellTryToMake))
                 else
-                    if st.piecesLeft >= 7
+                    if st.piecesLeft >= 7u
                     then
                         debugPrint("\n\nGonna change 7 pieces")
                         Print.printHand pieces st.hand
                         send cstream (SMChange (MultiSet.toList st.hand))
-                    else if st.piecesLeft = 0
+                    else if st.piecesLeft = 0u
                     then
                         
                         debugPrint("\n\nThere are no more tiles to change and i cant find any moves, so thats pretty bad")
                         debugPrint("\n\ngonna try anyway with st.handsixe piece")
-                        let tilesToRemove = chooseWorstPieces st.hand (int (MultiSet.size st.hand)) pieces
+                        let tilesToRemove = chooseWorstPieces st.hand (MultiSet.size st.hand) pieces
                         send cstream (SMChange (tilesToRemove))
-                    else if st.piecesLeft < 0
+                    else if st.piecesLeft < 0u
                     then
                         //will never print :(
                         debugPrint("\n\nI think that pieces left is negative... so ill try to change pieces and see what the response is")
@@ -615,9 +615,9 @@ module Scrabble =
                 
                 let coordMap' = (updateMap st.coordMap ms)
                 let piecesLeft' =
-                    if st.piecesLeft - (int)newPicesAmount <= 0
-                    then 0
-                    else st.piecesLeft - (int) newPicesAmount
+                    if st.piecesLeft - newPicesAmount <= 0u
+                    then 0u
+                    else st.piecesLeft - newPicesAmount
                 let crossChecks' = updateCrossChecks ms coordMap' st              
                 
                 let anchorLists' = updateAnchors coordMap'              
@@ -648,9 +648,9 @@ module Scrabble =
                 
                 let anchorLists' = updateAnchors coordMap'
                 let piecesLeft' =
-                    if st.piecesLeft - ms.Length <= 0
-                    then 0
-                    else st.piecesLeft - ms.Length
+                    if st.piecesLeft - (uint32) ms.Length <= 0u
+                    then 0u
+                    else st.piecesLeft - (uint32) ms.Length
                
                                
                 
@@ -700,7 +700,7 @@ module Scrabble =
                                 }
                     aux st'
                 else                    
-                    let tilesToRemove = chooseWorstPieces st.hand (int number ) pieces
+                    let tilesToRemove = chooseWorstPieces st.hand number pieces
                     let tilesToRemoveAsMultiSet = List.fold (fun acc element -> MultiSet.addSingle element acc) MultiSet.empty tilesToRemove
                     let handRemoveOld = subtract st.hand tilesToRemoveAsMultiSet
                     let handAddNew = sum handRemoveOld (listToMultiSet newTiles)         
@@ -732,9 +732,9 @@ module Scrabble =
                 let tilesLeft =
                     List.fold (fun acc error ->
                         match error with
-                        | GPENotEnoughPieces(changeTiles, availableTiles) ->
+                        | GPENotEnoughPieces(_, availableTiles) ->
                             debugPrint($"\n\nCorrecting the amount of pieces left from {st.piecesLeft} to {availableTiles}")
-                            (int)availableTiles
+                            availableTiles
                         | _ ->
                             debugPrint("\n\nI am error "+error.ToString())
                             acc
