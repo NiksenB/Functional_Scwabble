@@ -569,6 +569,9 @@ module Scrabble =
                     else if st.piecesLeft = 0
                     then
                         debugPrint("\n\nThere are no more tiles to change and i cant find any moves, so thats pretty bad")
+                        debugPrint("\n\ngonna try anyway with st.handsixe piece")
+                        let tilesToRemove = chooseWorstPieces st.hand (int (MultiSet.size st.hand)) pieces
+                        send cstream (SMChange (tilesToRemove))
                         send cstream (SMPass)
                     else if st.piecesLeft < 0
                     then
