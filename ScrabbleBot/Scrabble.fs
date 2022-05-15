@@ -529,7 +529,7 @@ module Scrabble =
                     debugPrint ("im gonna play this one vertically :) " + (word).ToString())
                     word
                 else 
-                    debugPrint "make it clap - i find no word im bad :("
+                    debugPrint "I cannot find a word"
                     List.Empty    
            
     let listToMultiSet h = List.fold (fun acc (element, amount) -> add element amount acc) empty h
@@ -542,7 +542,7 @@ module Scrabble =
             
             if next.Equals pt
             then
-                debugPrint("im forfeit mand")
+                debugPrint("It seems all other players have forfeited.")
                 failwith "It seems all other players have forfeited."
             else 
                 if np >= next && not(Set.contains next f) //the next player is existing and active
@@ -610,13 +610,8 @@ module Scrabble =
                     else if (remainingTilesInPile st) = 0u
                     then
                         
-                        debugPrint("\n\nThere are no more tiles to change and i cant find any moves, so thats pretty bad - passing")
+                        debugPrint("\n\nThere are no more tiles to change and i cant find any moves, -> passing")
                         send cstream (SMPass)
-                    else if remainingTilesInPile st < 0u
-                    then
-                        //will never print :(
-                        debugPrint("\n\nI think that pieces left is negative... so ill try to change pieces and see what the response is")
-                        send cstream (SMChange (toList st.hand))
                     else                       
                         let tilesToRemove = chooseWorstPieces st.hand (remainingTilesInPile st) pieces                    
                         debugPrint($"\n\nTrying to swap {tilesToRemove.Length.ToString()} tiles")
@@ -632,20 +627,12 @@ module Scrabble =
                 
                 let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), uint32 1)) ms
                 let handRemoveOld = subtract st.hand (listToMultiSet playedTiles)
-                //Print.printHand pieces handRemoveOld
-                let newPiecesAmount = MultiSet.size (listToMultiSet newPieces)
-                //Print.printHand pieces ((listToMultiSet newPieces))
-                
+                let newPiecesAmount = MultiSet.size (listToMultiSet newPieces)                
                 let handAddNew = sum handRemoveOld (listToMultiSet newPieces)
-                //Print.printHand pieces handAddNew
                 
                 let coordMap' = (updateMap st.coordMap ms)
-                let crossChecks' = updateCrossChecks ms coordMap' st              
-                
-                debugPrint("\n\n -----")
-                
+                let crossChecks' = updateCrossChecks ms coordMap' st                
                 let anchorLists' = updateAnchors coordMap'              
-                if MultiSet.size handAddNew > 7u then debugPrint("\n\nhand now larger than 7 ")
                 let st' =   { st with
                                 playerTurn = (getNextPlayerTurn st)
                                 points = st.points + points
@@ -741,7 +728,7 @@ module Scrabble =
                 let st' = {st with playerTurn = (getNextPlayerTurn {st with playerTurn = pid})} //again, making sure that we have the right "current" player stored might be redundant.
                 aux st'
 
-            //TODO Handle a few of the different Gameplay errors? (see Scrabble.pdf)
+            
             | RGPE err ->
                 List.fold (fun acc error ->
                     match error with
@@ -754,7 +741,6 @@ module Scrabble =
                 ) () err
                     
                 aux st
-                //printfn "Gameplay Error:\n%A" err; aux st
         
         aux st
 
