@@ -1,4 +1,4 @@
-# RUN THE PROGRAM 
+# How to run
 - cd into ScrabbleTemplate 
 - Run "dotnet run"
 
