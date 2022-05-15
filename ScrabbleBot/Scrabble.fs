@@ -480,9 +480,17 @@ module Scrabble =
                 
                 (bestWord, list.Empty)    
     
-    let findLongestWordInList (words : ((coord * (uint32 * (char * int))) list) list)  =
-        List.fold (fun (acc : (coord * (uint32 * (char * int))) list) (newWord: (coord * (uint32 * (char * int))) list) ->
-            if newWord.Length > acc.Length then newWord else acc) List.Empty words
+    let findBestPointWordLite (words : ((coord * (uint32 * (char * int))) list) list)  =
+        let (bestword, _ ) = (List.fold (fun ((bestWord : (coord * (uint32 * (char * int))) list),acc) (newWord: (coord * (uint32 * (char * int))) list) ->
+                let acc' =
+                           List.fold( fun innerAcc (_, (_, (_, p)))->
+                                innerAcc + p
+                            ) 0 newWord
+                if acc' > acc
+                then (newWord, acc')
+                else (bestWord, acc))
+            (List.Empty,0) words)
+        bestword
                     
     let findMoves (st : State.state) pieces =
         debugPrint("\n\nplayer nr : " + (string)st.playerTurn)        
@@ -502,7 +510,7 @@ module Scrabble =
 
             if (not (List.isEmpty horizontalWords))
             then
-                let word = findLongestWordInList horizontalWords
+                let word = findBestPointWordLite horizontalWords
                 debugPrint("\n\n amount of words : " + horizontalWords.Length.ToString())
                 debugPrint ("Im gonna play this one horizontally :) " + word.ToString())
                 word
@@ -515,7 +523,7 @@ module Scrabble =
                     ) List.Empty st.anchorLists.anchorsForVerticalWords
                 if (not (List.isEmpty verticalWords))
                 then
-                    let word = findLongestWordInList verticalWords
+                    let word = findBestPointWordLite verticalWords
                     
                     debugPrint("\n\n amount of words : " + verticalWords.Length.ToString())
                     debugPrint ("im gonna play this one vertically :) " + (word).ToString())
