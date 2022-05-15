@@ -80,7 +80,7 @@ module State =
     
     let mkAnchors h v = {anchorsForHorizontalWords = h; anchorsForVerticalWords =v; }
     let mkState b d np (pn:uint32) pt f p h cm al cc =
-        let tiles = (100-((7) * (int) pn))
+        let tiles = (100-((7) * (int) np))
         {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossChecks = cc; piecesLeft = tiles; haveJustSwappedTiles = false;  }
 
     let board st         = st.board
