@@ -700,7 +700,6 @@ module Scrabble =
             | RCM (CMPassed(pid)) -> 
                 //Current player passes
                 let currentSt = {st with playerTurn = pid} //this line might be redundant, I put it here just in case...
-                let playerNumber' = getNextPlayerTurn st
                 let st' = {currentSt with playerTurn = (getNextPlayerTurn st)}
                 aux st'
             
@@ -744,16 +743,15 @@ module Scrabble =
 
             //TODO Handle a few of the different Gameplay errors? (see Scrabble.pdf)
             | RGPE err ->
-                let tilesLeft =
-                    List.fold (fun acc error ->
-                        match error with
-                        | GPENotEnoughPieces(_, availableTiles) ->
-                            debugPrint($"\n\nWe thought the amount of pieces left was {remainingTilesInPile st} but it was {availableTiles}")
-                            acc
-                        | _ ->
-                            debugPrint("\n\nI am error "+error.ToString())
-                            acc
-                    ) () err
+                List.fold (fun acc error ->
+                    match error with
+                    | GPENotEnoughPieces(_, availableTiles) ->
+                        debugPrint($"\n\nWe thought the amount of pieces left was {remainingTilesInPile st} but it was {availableTiles}")
+                        acc
+                    | _ ->
+                        debugPrint("\n\nI am error "+error.ToString())
+                        acc
+                ) () err
                     
                 aux st
                 //printfn "Gameplay Error:\n%A" err; aux st
