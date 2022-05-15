@@ -568,6 +568,7 @@ module Scrabble =
                         send cstream (SMChange (MultiSet.toList st.hand))
                     else if st.piecesLeft = 0
                     then
+                        
                         debugPrint("\n\nThere are no more tiles to change and i cant find any moves, so thats pretty bad")
                         debugPrint("\n\ngonna try anyway with st.handsixe piece")
                         let tilesToRemove = chooseWorstPieces st.hand (int (MultiSet.size st.hand)) pieces
@@ -605,7 +606,7 @@ module Scrabble =
                 Print.printHand pieces handRemoveOld
                 
                 debugPrint("\n\n New tiles are  + \n")
-                
+                let newPicesAmount = MultiSet.size (listToMultiSet newPieces)
                 Print.printHand pieces ((listToMultiSet newPieces))
                 
                 let handAddNew = sum handRemoveOld (listToMultiSet newPieces)
@@ -613,9 +614,9 @@ module Scrabble =
                 Print.printHand pieces handAddNew
                 let coordMap' = (updateMap st.coordMap ms)
                 let piecesLeft' =
-                    if st.piecesLeft - newPieces.Length <= 0
+                    if st.piecesLeft - (int)newPicesAmount <= 0
                     then 0
-                    else st.piecesLeft - newPieces.Length
+                    else st.piecesLeft - (int) newPicesAmount
                 let crossChecks' = updateCrossChecks ms coordMap' st              
                 
                 let anchorLists' = updateAnchors coordMap'              
