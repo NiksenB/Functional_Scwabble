@@ -121,7 +121,18 @@ module Scrabble =
     
     let hasNotRightNeighbor coord coordMap =
         not (Map.containsKey (getNextRightCoord coord) coordMap)
-
+    
+    let checkLeftNeighBorForPossibleStartLeft coord coordMap =
+        match (hasNotUpNeighbor coord coordMap, hasNotLeftNeighbor coord coordMap, hasNotDownNeighbor coord coordMap) with
+        | (true, true, true) -> true
+        |_ -> false
+    
+    let checkUpNeighBorForPossibleStartTop coord coordMap =
+        match (hasNotLeftNeighbor coord coordMap, hasNotUpNeighbor coord coordMap, hasNotRightNeighbor coord coordMap) with
+        | (true, true, true) -> true
+        |_ -> false
+        
+        
     let updateAnchors (coordMap : Map<coord, uint32 * (char * int)>) = 
         let (anchorListHorizontal, anchorListVertical) =
             Map.fold (fun (anchorListHorizontal, anchorListVertical) key value ->
@@ -140,13 +151,20 @@ module Scrabble =
                    
                 |true,false ->
                     let hori' = (key,value) :: anchorListHorizontal
-                    
-                    (hori', anchorListVertical)
+                    let nextLeftCoord = (getNexLeftCoord key)
+                    if (checkLeftNeighBorForPossibleStartLeft nextLeftCoord coordMap )
+                    then
+                        ((nextLeftCoord,value) :: hori', anchorListVertical)
+                    else
+                        (hori', anchorListVertical)
             
                 |false, true ->                    
                     let verti' = (key,value) :: anchorListVertical
-                    
-                    (anchorListHorizontal, verti')
+                    let nextUp = getNextUpCoord key
+                    if checkUpNeighBorForPossibleStartTop nextUp coordMap
+                    then (anchorListHorizontal, (nextUp, value) :: verti')
+                    else    
+                        (anchorListHorizontal, verti')
                 
                 | _ -> (anchorListHorizontal,anchorListVertical)
             )(List.empty, List.Empty) coordMap
