@@ -525,7 +525,9 @@ module Scrabble =
         
     let remainingTilesInPile (st : State.state) =
         let remaining = 100u - ((uint32) (Map.count st.coordMap)) - (st.numOfPlayers * 7u)
-        if remaining > 100u then 0u
+        if remaining > 100u
+            then
+            0u
         else remaining
 
     let updateMap oldmap message= List.fold (fun newmap (coord, brik) -> Map.add coord brik newmap) oldmap message
@@ -582,17 +584,10 @@ module Scrabble =
                         debugPrint("\n\nI think that pieces left is negative... so ill try to change pieces and see what the response is")
                         send cstream (SMChange (toList st.hand))
                     else                       
-                        if (st.haveJustSwappedTiles )
-                        then send cstream (SMPass)
-                        else
-                            let tilesToRemove = chooseWorstPieces st.hand (remainingTilesInPile st) pieces                    
-                            debugPrint($"\n\nTrying to swap {tilesToRemove.Length.ToString()} tiles")
-                            send cstream (SMChange tilesToRemove)
-                    
-                
-                
+                        let tilesToRemove = chooseWorstPieces st.hand (remainingTilesInPile st) pieces                    
+                        debugPrint($"\n\nTrying to swap {tilesToRemove.Length.ToString()} tiles")
+                        send cstream (SMChange tilesToRemove)
             else
-                
                 ()
                 
             let msg = recv cstream
@@ -616,11 +611,6 @@ module Scrabble =
                 
                 let coordMap' = (updateMap st.coordMap ms)
                 let crossChecks' = updateCrossChecks ms coordMap' st              
-                
-                forcePrint("\n\n -----")
-                forcePrint($"\n\n{st.piecesLeft} så mange brikker tilbage i puljen")
-                forcePrint($"\n\nNu har jeg fået {newPiecesAmount} brikker af robotten, efter at jeg spillede {ms.Length.ToString()} brikker")
-                forcePrint($"\n\n{piecesLeft'} er altså den nye pulje")
                 
                 debugPrint("\n\n -----")
                 
