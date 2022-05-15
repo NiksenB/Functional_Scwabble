@@ -322,7 +322,6 @@ module Scrabble =
                 let notABrik = Map.find (nextNeighborCoord coord) coordMap
                 let brik' = ((nextNeighborCoord coord), notABrik)
                 crossCheckGenericTwoBefore crossCheckRules brik' coordMap state isNeighborFree nextNeighborCoord goToStartOfWordBefore goToStartOfWordAfter    
-            | _ -> crossCheckRules
             
     let crossCheckUpAndUp crossCheckRules (brik : coord * (uint32 * (char * int))) coordMap state =
         crossCheckGenericTwoBefore
@@ -493,7 +492,7 @@ module Scrabble =
         bestword
                     
     let findMoves (st : State.state) pieces =
-        debugPrint("\n\nplayer nr : " + (string)st.playerTurn)        
+        debugPrint("\n\nplayer nr : " + (string)st.playerTurn+"\n\n")        
         if List.isEmpty (st.anchorLists.anchorsForVerticalWords) && List.isEmpty (st.anchorLists.anchorsForHorizontalWords)
         then
             let x = findFirstWord st.hand st.dict pieces (false, List.Empty)
@@ -522,10 +521,10 @@ module Scrabble =
                 let word = findBestPointWordLite allWords
                 
                 debugPrint("\n\n amount of words : " + allWords.Length.ToString())
-                debugPrint ("im gonna play this one :) " + (word).ToString())
+                debugPrint ("\n\nIm gonna play this word: " + (word).ToString())
                 word
             else 
-                debugPrint "make it clap - i find no word im bad :("
+                debugPrint "\n\nI can't seem to find a word"
                 List.Empty    
             
     let listToMultiSet h = List.fold (fun acc (element, amount) -> add element amount acc) empty h
