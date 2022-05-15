@@ -69,7 +69,6 @@ module State =
         coordMap      : Map<coord, uint32 * (char * int)>
         anchorLists   : anchors
         crossChecks   : crossChecks
-        piecesLeft    : uint32
         haveJustSwappedTiles : bool
     }
     
@@ -81,8 +80,7 @@ module State =
     
     let mkAnchors h v = {anchorsForHorizontalWords = h; anchorsForVerticalWords =v; }
     let mkState b d np (pn:uint32) pt f p h cm al cc =
-        let tiles = (100u-((7u) * np))
-        {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossChecks = cc; piecesLeft = tiles; haveJustSwappedTiles = false;  }
+        {board = b; dict = d;  numOfPlayers = np; playerNumber = pn; playerTurn = pt; forfeited = f; points = p; hand = h; coordMap = cm; anchorLists = al; crossChecks = cc; haveJustSwappedTiles = false;  }
 
     let board st         = st.board
     let dict st          = st.dict
@@ -95,7 +93,6 @@ module State =
     let coordMap st      = st.coordMap
     let anchorLists st   = st.anchorLists
     let crossChecks st   = st.crossChecks
-    let piecesLeft st    = st.piecesLeft
     
 
 
@@ -526,6 +523,11 @@ module Scrabble =
     let getNextPlayerTurn (st : State.state) = 
         playerTurnHelper st.numOfPlayers (st.playerTurn + uint32 1) st.playerTurn st.forfeited
         
+    let remainingTilesInPile (st : State.state) =
+        let remaining = 100u - ((uint32) (Map.count st.coordMap)) - (st.numOfPlayers * 7u)
+        if remaining > 100u then 0u
+        else remaining
+
     let updateMap oldmap message= List.fold (fun newmap (coord, brik) -> Map.add coord brik newmap) oldmap message
     
     let chooseWorstPieces hand (amountToRemove: uint32) (pieces : Map<uint32,tile>)=     
@@ -562,19 +564,19 @@ module Scrabble =
                     debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) theMoveWellTryToMake) // keep the debug lines. They are useful.
                     send cstream (SMPlay (theMoveWellTryToMake))
                 else
-                    if st.piecesLeft >= 7u
+                    if remainingTilesInPile st >= 7u
                     then
                         debugPrint("\n\nGonna change 7 pieces")
                         Print.printHand pieces st.hand
                         send cstream (SMChange (MultiSet.toList st.hand))
-                    else if st.piecesLeft = 0u
+                    else if (remainingTilesInPile st) = 0u
                     then
                         
                         debugPrint("\n\nThere are no more tiles to change and i cant find any moves, so thats pretty bad")
                         debugPrint("\n\ngonna try anyway with st.handsixe piece")
                         let tilesToRemove = chooseWorstPieces st.hand (MultiSet.size st.hand) pieces
                         send cstream (SMChange (tilesToRemove))
-                    else if st.piecesLeft < 0u
+                    else if remainingTilesInPile st < 0u
                     then
                         //will never print :(
                         debugPrint("\n\nI think that pieces left is negative... so ill try to change pieces and see what the response is")
@@ -583,7 +585,7 @@ module Scrabble =
                         if (st.haveJustSwappedTiles )
                         then send cstream (SMPass)
                         else
-                            let tilesToRemove = chooseWorstPieces st.hand st.piecesLeft pieces                    
+                            let tilesToRemove = chooseWorstPieces st.hand (remainingTilesInPile st) pieces                    
                         
                             debugPrint($"\n\nTrying to swap {tilesToRemove.Length.ToString()} tiles")
                             send cstream (SMChange tilesToRemove)
@@ -614,10 +616,6 @@ module Scrabble =
                 Print.printHand pieces handAddNew
                 
                 let coordMap' = (updateMap st.coordMap ms)
-                let piecesLeft' =
-                    if st.piecesLeft - newPicesAmount <= 0u
-                    then 0u
-                    else st.piecesLeft - newPicesAmount
                 let crossChecks' = updateCrossChecks ms coordMap' st              
                 
                 let anchorLists' = updateAnchors coordMap'              
@@ -629,7 +627,6 @@ module Scrabble =
                                 coordMap = coordMap'
                                 anchorLists = anchorLists'
                                 crossChecks = crossChecks'
-                                piecesLeft = piecesLeft'
                                 haveJustSwappedTiles = false
                 }                                        
                 
@@ -645,13 +642,7 @@ module Scrabble =
                 debugPrint("Other player has played a move" + "\n\n")
                 let coordMap' = (updateMap st.coordMap ms)
                 let crossChecks' = updateCrossChecks ms coordMap' st              
-                
-                let anchorLists' = updateAnchors coordMap'
-                let piecesLeft' =
-                    if st.piecesLeft - (uint32) ms.Length <= 0u
-                    then 0u
-                    else st.piecesLeft - (uint32) ms.Length
-               
+                let anchorLists' = updateAnchors coordMap'            
                                
                 
                 let st' =   { st with
@@ -659,7 +650,6 @@ module Scrabble =
                                     coordMap = coordMap'
                                     anchorLists = anchorLists'
                                     crossChecks = crossChecks'
-                                    piecesLeft = piecesLeft'
                                     haveJustSwappedTiles = false
                 }
                 aux st'               
@@ -668,11 +658,10 @@ module Scrabble =
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
                 let st' = {st with playerTurn = (getNextPlayerTurn st)}
-                 
                 aux st'
 
             | RCM (CMGameOver pointList) ->
-                debugPrint("\nRemaining tiles: " + st.piecesLeft.ToString() + "\n")
+                debugPrint("\nRemaining tiles: " + (remainingTilesInPile st).ToString() + "\n")
                 for playerResults in pointList
                     do
                         debugPrint("Player " + (fst playerResults).ToString() + ": " + (snd playerResults).ToString() + "points.\n")
@@ -733,16 +722,14 @@ module Scrabble =
                     List.fold (fun acc error ->
                         match error with
                         | GPENotEnoughPieces(_, availableTiles) ->
-                            debugPrint($"\n\nCorrecting the amount of pieces left from {st.piecesLeft} to {availableTiles}")
-                            availableTiles
+                            debugPrint($"\n\nWe thought the amount of pieces left was {remainingTilesInPile st} but it was {availableTiles}")
+                            acc
                         | _ ->
                             debugPrint("\n\nI am error "+error.ToString())
                             acc
-                    ) st.piecesLeft err
+                    ) () err
                     
-                    
-                let st' = {st with piecesLeft = tilesLeft}
-                aux st'
+                aux st
                 //printfn "Gameplay Error:\n%A" err; aux st
         
         aux st
