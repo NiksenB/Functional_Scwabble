@@ -1,5 +1,6 @@
 ﻿namespace Scwabble
 
+open System.Diagnostics
 open MultiSet
 
 open ScrabbleUtil
@@ -573,7 +574,6 @@ module Scrabble =
                         debugPrint("\n\ngonna try anyway with st.handsixe piece")
                         let tilesToRemove = chooseWorstPieces st.hand (int (MultiSet.size st.hand)) pieces
                         send cstream (SMChange (tilesToRemove))
-                        send cstream (SMPass)
                     else if st.piecesLeft < 0
                     then
                         //will never print :(
@@ -707,7 +707,6 @@ module Scrabble =
                                 hand = handAddNew
                                 haveJustSwappedTiles = true
                                 playerTurn = getNextPlayerTurn st
-                                 
                                 }
                     aux st'
                
@@ -729,12 +728,16 @@ module Scrabble =
 
             //TODO Handle a few of the different Gameplay errors? (see Scrabble.pdf)
             | RGPE err ->
-                let tilesLeft = List.fold (fun acc error ->
-                    match error with
-                    | GPENotEnoughPieces(changeTiles, availableTiles) ->
-                        debugPrint($"\n\nCorrecting the amount of pieces left from {st.piecesLeft} to {availableTiles}"            
-                                   )
-                        acc+(int)availableTiles) 0 err
+                let tilesLeft =
+                    List.fold (fun acc error ->
+                        match error with
+                        | GPENotEnoughPieces(changeTiles, availableTiles) ->
+                            debugPrint($"\n\nCorrecting the amount of pieces left from {st.piecesLeft} to {availableTiles}")
+                            (int)availableTiles
+                        | _ ->
+                            debugPrint("\n\nI am error "+error.ToString())
+                            acc
+                    ) st.piecesLeft err
                     
                     
                 let st' = {st with piecesLeft = tilesLeft}
