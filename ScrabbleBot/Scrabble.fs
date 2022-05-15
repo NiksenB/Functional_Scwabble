@@ -681,35 +681,24 @@ module Scrabble =
                 //Current player passes
                 let currentSt = {st with playerTurn = pid} //this line might be redundant, I put it here just in case...
                 let playerNumber' = getNextPlayerTurn st
-                forcePrint("\n\n player number is  "+ playerNumber'.ToString())
                 let st' = {currentSt with playerTurn = (getNextPlayerTurn st)}
                 aux st'
             
             | RCM (CMChangeSuccess(newTiles)) ->
                 //You changed your tiles
-                forcePrint("\n\n new tiles here = " )
-                Print.printHand  pieces (listToMultiSet newTiles)
-                
                 let number = MultiSet.size (listToMultiSet newTiles)
                 if number = uint 7
                 then
-                    
-                    forcePrint("in here")
                     let st' = {st with
                                 hand = listToMultiSet newTiles
                                 playerTurn = getNextPlayerTurn st                                 
                                 }
                     aux st'
-                else
-                    debugPrint("change tiles is not 7 it is  " + number.ToString())
+                else                    
                     let tilesToRemove = chooseWorstPieces st.hand (int number ) pieces
-                    debugPrint("\n\n684")
                     let tilesToRemoveAsMultiSet = List.fold (fun acc element -> MultiSet.addSingle element acc) MultiSet.empty tilesToRemove
-                    debugPrint("\n\n686")
                     let handRemoveOld = subtract st.hand tilesToRemoveAsMultiSet
-                    debugPrint("\n\n688")                
-                    let handAddNew = sum handRemoveOld (listToMultiSet newTiles)
-                    debugPrint("\n\n690")                
+                    let handAddNew = sum handRemoveOld (listToMultiSet newTiles)         
                     let st' = {st with
                                 hand = handAddNew
                                 haveJustSwappedTiles = true
