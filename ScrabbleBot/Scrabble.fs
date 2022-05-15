@@ -141,11 +141,19 @@ module Scrabble =
                     let hori' =  (key,value) :: anchorListHorizontal 
                     let verti' = (key,value) :: anchorListVertical
                     //it gets the coordinates just left and above of the stuff put on the map, if they are free
+                    let nextLeft = (getNexLeftCoord key)
+                    let nextUp = (getNextUpCoord key)
+                    let horitwo =
+                        if (checkLeftNeighBorForPossibleStartLeft nextLeft coordMap )
+                        then ((nextLeft ,value)::hori')
+                        else hori'
+                        
+                    let vertitwo =
+                        if (checkUpNeighBorForPossibleStartTop nextUp coordMap)
+                        then ((nextUp, value) :: verti')
+                        else verti'
                     
-                    if (hasNotLeftNeighbor  (getNexLeftCoord (getNexLeftCoord key)) coordMap) && (hasNotUpNeighbor (getNextUpCoord (getNextUpCoord key)) coordMap)
-                    then                       
-                            ((getNexLeftCoord key,value) :: hori',  (getNextUpCoord key,value) :: verti')
-                    else (hori', verti')
+                    (horitwo, vertitwo)
                     
                     
                    
@@ -570,9 +578,11 @@ module Scrabble =
                
     
     let playGame cstream pieces (st : State.state) =
-
+        
         let rec aux (st : State.state) =
             debugPrint("\n\n Player turn  : " + (string)st.playerTurn + " \n\n")
+            
+                
             if st.playerTurn = st.playerNumber
             
             then
@@ -614,15 +624,11 @@ module Scrabble =
                 
                 let playedTiles = List.map (fun x -> (snd x) |> fun y -> ((fst y), uint32 1)) ms
                 let handRemoveOld = subtract st.hand (listToMultiSet playedTiles)
-                debugPrint("\n\n Old hand without eye is + \n")
                 //Print.printHand pieces handRemoveOld
-                
-                debugPrint("\n\n New tiles are  + \n")
                 let newPiecesAmount = MultiSet.size (listToMultiSet newPieces)
                 //Print.printHand pieces ((listToMultiSet newPieces))
                 
                 let handAddNew = sum handRemoveOld (listToMultiSet newPieces)
-                debugPrint("\n\n New Hand is   + \n")
                 //Print.printHand pieces handAddNew
                 
                 let coordMap' = (updateMap st.coordMap ms)
